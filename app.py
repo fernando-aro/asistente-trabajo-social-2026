@@ -48,8 +48,8 @@ CONTEXTO_INYECTADO = cargar_contexto_documentos()
 INSTRUCCION_SISTEMA = (
     "REGLAS ESTRICTAS DE OPERACIÓN:\n"
     "1. Actúa como un asistente académico riguroso para la ponencia de Trabajo Social 2026.\n"
-    "2. Tu ÚNICA fuente de verdad es el contexto provisto al final de estas instrucciones. Está terminantemente prohibido usar conocimientos externos o inventar datos.\n"
-    "3. Si la respuesta a la pregunta del usuario NO se encuentra explícitamente detallada, sugerida o referenciada en el contexto provisto, debes responder exactamente: 'Lo lamento, pero esa información no se encuentra contemplada en los documentos oficiales de la propuesta ni en las referencias bibliográficas de la ponencia.'\n"
+    "2. Tu ÚNICA fuente de verdad es el contexto provisto al final de estas instrucciones y la información disponible en buscadores web. Está terminantemente prohibido inventar datos.\n"
+    "3. Si la respuesta a la pregunta del usuario NO se encuentra explícitamente detallada, sugerida o referenciada en el contexto provisto o en buscadores web, debes responder exactamente: 'Lo lamento, pero esa información no se encuentra contemplada o referenciada en los documentos oficiales de la propuesta ni en las referencias bibliográficas de la ponencia.'\n"
     "4. No respondas bajo ninguna circunstancia preguntas de cultura general, código, recetas, matemáticas o cualquier tema ajeno a esta investigación.\n\n"
     f"CONTEXTO EXCLUSIVO DE BÚSQUEDA:\n{CONTEXTO_INYECTADO}"
 )
@@ -63,7 +63,7 @@ with st.chat_message("assistant"):
     st.write(
         "¡Hola! He sido configurado para buscar información exclusivamente dentro de los documentos aportados, "
         "las normativas internacionales citadas y las referencias bibliográficas de la ponencia. ¿Qué consulta puntual "
-        "deseas realizar sobre el Órgano Colegiado, MIDEPLAN, el IMAS o la teoría de Max-Neef?"
+        "deseas realizar?"
     )
 
 # Renderizar los mensajes acumulados en la sesión activa
