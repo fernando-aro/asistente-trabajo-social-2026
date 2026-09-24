@@ -21,13 +21,13 @@ else:
     st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit Community Cloud.")
     st.stop()
 
-# Inicialización del cliente OpenAI compatible con la infraestructura rápida de Groq
+# 3. Inicialización del cliente OpenAI apuntando al endpoint compatible de Groq
 client = OpenAI(
     api_key=api_key,
-    base_url="https://groq.com"
+    base_url="https://api.groq.com/openai/v1"  # Base URL oficial compatible
 )
 
-# 3. Función automática para leer el archivo de contexto externo (.txt)
+# 4. Función automática para leer el archivo de contexto externo (.txt)
 @st.cache_data
 def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
     """
@@ -41,10 +41,10 @@ def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
     with open(nombre_archivo, "r", encoding="utf-8") as f:
         return f.read()
 
-# --- CARGA PREVIA DE DATOS (Previene el NameError) ---
+# Carga previa del documento externo (Previene NameError)
 CONTEXTO_INYECTADO = cargar_contexto_documentos()
 
-# 4. Definición de la instrucción maestra del sistema
+# 5. Definición de la instrucción maestra del sistema para el blindaje de búsqueda
 INSTRUCCION_SISTEMA = (
     "REGLAS ESTRICTAS DE OPERACIÓN:\n"
     "1. Actúa como un asistente académico riguroso para la ponencia de Trabajo Social 2026.\n"
@@ -54,11 +54,11 @@ INSTRUCCION_SISTEMA = (
     f"CONTEXTO EXCLUSIVO DE BÚSQUEDA:\n{CONTEXTO_INYECTADO}"
 )
 
-# 5. Inicialización y renderizado seguro del historial del Chat en Streamlit
+# 6. Inicialización y renderizado del historial del Chat en la sesión de Streamlit
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []
 
-# Mensaje de bienvenida inicial fijo
+# Mensaje de bienvenida inicial fijo en pantalla
 with st.chat_message("assistant"):
     st.write(
         "¡Hola! He sido configurado para buscar información exclusivamente dentro de los documentos aportados, "
@@ -66,19 +66,19 @@ with st.chat_message("assistant"):
         "deseas realizar sobre el Órgano Colegiado, MIDEPLAN, el IMAS o la teoría de Max-Neef?"
     )
 
-# Renderizar los mensajes que se vayan acumulando en la sesión activa
+# Renderizar los mensajes acumulados en la sesión activa
 for role, text in st.session_state["chat_history"]:
     with st.chat_message(role):
         st.write(text)
 
-# 6. Captura de la interacción y consulta del usuario (Inferencia Blindada)
+# 7. Captura de la interacción y consulta del usuario (Inferencia Blindada)
 if user_query := st.chat_input("Escribe tu consulta académica o profesional aquí..."):
     # Guardar y mostrar el mensaje del usuario
     st.session_state["chat_history"].append(("user", user_query))
     with st.chat_message("user"):
         st.write(user_query)
         
-    # Construcción dinámica del payload de mensajes garantizando la inyección del System Prompt fresco
+    # Construcción dinámica inyectando el System Prompt fresco para evitar evasión de reglas
     payload_mensajes = [{"role": "system", "content": INSTRUCCION_SISTEMA}]
     for role, text in st.session_state["chat_history"]:
         payload_mensajes.append({"role": role, "content": text})
@@ -87,10 +87,11 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
         try:
+            # CORRECCIÓN DE ENDPOINT: Usamos el modelo de chat masivo compatible con /chat/completions
             chat_completion = client.chat.completions.create(
-                model="openai/gpt-oss-120b",
+                model="llama-3.1-70b-versatile",  # Modelo estable, gratuito y compatible con OpenAI SDK
                 messages=payload_mensajes,
-                temperature=0.0  # Anula por completo la creatividad y fuerza el apego al documento
+                temperature=0.0  # Fuerza el apego matemático al documento de texto plano
             )
             answer = chat_completion.choices.message.content
             response_placeholder.write(answer)
@@ -98,4 +99,5 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             # Guardar la respuesta generada en el historial
             st.session_state["chat_history"].append(("assistant", answer))
         except Exception as e:
+            # Se conserva tu bloque original para auditoría de errores del servidor
             st.error(f"Ocurrió un error en la comunicación con el servidor: {e}")
