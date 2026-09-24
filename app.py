@@ -59,8 +59,7 @@ if "messages" not in st.session_state:
             "role": "assistant", 
             "content": (
                 "¡Hola! El bot asistente (con arquitectura OpenAI-Groq) está listo para responder tus consultas en tiempo real. "
-                "Puedes preguntar sobre el modelo del Órgano Colegiado, el Artículo 9 de la Constitución de Costa Rica, la Ley 8364, "
-                "los recortes presupuestarios en inversión social o la crítica a los seudo-satisfactores del IMAS y MIDEPLAN. ¿Qué deseas consultar?"
+                "¿Qué deseas consultar?"
             )
         }
     ]
