@@ -27,22 +27,31 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1"  # Endpoint de compatibilidad OpenAI
 )
 
-# 4. Función automática para leer el archivo de contexto externo (.txt)
-@st.cache_data
-def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
-    """
-    Carga de forma automática las normativas, propuestas y referencias bibliográficas 
-    guardadas en el archivo externo de texto plano.
-    """
-    if not os.path.exists(nombre_archivo):
-        with open(nombre_archivo, "w", encoding="utf-8") as f:
-            f.write("CONTEXTO DE LA PONENCIA:\n(Por favor, pega aquí el contenido de tus propuestas y normativas).")
-    
-    with open(nombre_archivo, "r", encoding="utf-8") as f:
-        return f.read()
+# 4. Inicialización del historial de chat BLINDADO en la sesión de Streamlit
+if "messages" not in st.session_state:
+    st.session_state["messages"] = [
+        {
+            "role": "system", 
+            "content": (
+                "REGLAS ESTRICTAS DE OPERACIÓN:\n"
+                "1. Actúa como un asistente académico riguroso para la ponencia de Trabajo Social 2026.\n"
+                "2. Tu ÚNICA fuente de verdad es el contexto provisto a continuación. Está terminantemente prohibido usar conocimientos externos o inventar datos.\n"
+                "3. Si la respuesta a la pregunta del usuario NO se encuentra explícitamente detallada, sugerida o referenciada en el contexto provisto, debes responder exactamente: 'Lo lamento, pero esa información no se encuentra contemplada en los documentos oficiales de la propuesta ni en las referencias bibliográficas de la ponencia.'\n"
+                "4. No respondas preguntas de cultura general, código, matemáticas o cualquier tema ajeno a esta investigación.\n\n"
+                f"CONTEXTO EXCLUSIVO DE BÚSQUEDA:\n{CONTEXTO_INYECTADO}"
+            )
+        },
+        {
+            "role": "assistant", 
+            "content": (
+                "¡Hola! He sido configurado para buscar información exclusivamente dentro de los documentos aportados, "
+                "las normativas internacionales citadas y las referencias bibliográficas de la ponencia. ¿Qué consulta puntual "
+                "deseas realizar sobre el Órgano Colegiado, MIDEPLAN, el IMAS o la teoría de Max-Neef?"
+            )
+        }
+    ]
 
-# Inyección del texto de los documentos aportados
-CONTEXTO_INYECTADO = cargar_contexto_documentos()
+# [ ... Código intermedio idéntico: renderizado de mensajes en pantalla ... ]
 
 # 5. Inicialización del historial de chat en la sesión de Streamlit
 if "messages" not in st.session_state:
@@ -71,27 +80,22 @@ for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
-# 7. Captura de la interacción y consulta del usuario
+# 7. Captura de la interacción y consulta del usuario (Inferencia Blindada)
 if user_query := st.chat_input("Escribe tu consulta académica o profesional aquí..."):
-    # Guardar y mostrar el mensaje enviado por el usuario
     st.session_state.messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.write(user_query)
         
-    # Consulta al motor de inferencia compatible con OpenAI
-    with st.chat_message("assistant"):
+    with St.chat_message("assistant"):
         response_placeholder = st.empty()
         try:
-            # Llamada estándar usando el catálogo actualizado de Groq
             chat_completion = client.chat.completions.create(
-                model="openai/gpt-oss-120b",  # Modelo oficial de alta capacidad con Prompt Caching
+                model="openai/gpt-oss-120b",
                 messages=st.session_state.messages,
-                temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
+                temperature=0.0  # <--- CRUCIAL: Temperatura 0.0 anula la creatividad del modelo
             )
-            answer = chat_completion.choices[0].message.content
+            answer = chat_completion.choices.message.content
             response_placeholder.write(answer)
-            
-            # Guardar la respuesta generada en el historial de sesión
             st.session_state.messages.append({"role": "assistant", "content": answer})
         except Exception as e:
             st.error(f"Ocurrió un error en la comunicación con el servidor: {e}")
