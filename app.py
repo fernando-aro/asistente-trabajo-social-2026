@@ -9,9 +9,9 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("🤖 Asistente Virtual: Ponencia Trabajo Social 2026")
-st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
-
+("🧑🏻‍⚖️ Asistente Virtual: Participación ciudadana en la gestión pública")
+st.subheader("Consultas basadas en la Declaración Universal de los Derechos Humanos, la Carta Iberoamericana de Gobierno Abierto y la de Participación Ciudadana en la Función Pública, en la Teoría de Manfred Max-Neef,en la propuesta de construcción participativa del PNDIP y la propuesta de creación del Órgano Colegiado para la institucionalización de la participación ciudadana")
+ii0ha
 # 2. Conexión segura con la API Key (Almacenada en los Secrets de Streamlit)
 if "GROQ_API_KEY" in st.secrets:
     api_key = st.secrets["GROQ_API_KEY"]
@@ -59,7 +59,7 @@ if "messages" not in st.session_state:
         {
             "role": "system", 
             "content": (
-                "Eres un asistente académico experto en Trabajo Social, Gestión Pública y Derechos Humanos. "
+                "Eres un asistente académico y profesional experto en Trabajo Social, Gestión Pública, Derecho Constitucional, participación ciudadana, Democracia Paerticipativa y Derechos Humanos. "
                 "Responde las dudas de estudiantes y profesionales basándote estrictamente en el siguiente contexto legal, "
                 f"teórico y bibliográfico inyectado desde tus documentos oficiales:\n\n{CONTEXTO_INYECTADO}"
             )
@@ -67,7 +67,7 @@ if "messages" not in st.session_state:
         {
             "role": "assistant", 
             "content": (
-                "¡Hola! El bot asistente (con arquitectura OpenAI-Groq) está listo para responder tus consultas en tiempo real. "
+                "¡Hola! El asistente (creado por ARO | Asesoría en Recursos Organizacionales) está listo para responder tus consultas en tiempo real. "
                 "¿Qué deseas consultar?"
             )
         }
@@ -94,7 +94,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             chat_completion = client.chat.completions.create(
                 model="openai/gpt-oss-120b",  # Modelo oficial de alta capacidad con Prompt Caching
                 messages=st.session_state.messages,
-                temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
+                temperature=0.1  # Temperatura baja para garantizar fidelidad estricta al texto
             )
             # CORRECCIÓN DE SINTAXIS: Se eliminó el [0] que causaba conflicto en el SDK moderno
             answer = chat_completion.choices.message.content
