@@ -24,7 +24,7 @@ else:
 # 3. Inicialización del cliente OpenAI apuntando a los servidores rápidos de Groq
 client = OpenAI(
     api_key=api_key,
-    base_url="https://api.groq.com/openai/v1"  # Endpoint de compatibilidad OpenAI
+    base_url="https://groq.com"  # Endpoint de compatibilidad OpenAI
 )
 
 # 4. Función automática para leer el archivo de contexto externo (.txt)
@@ -37,12 +37,21 @@ def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
     if not os.path.exists(nombre_archivo):
         with open(nombre_archivo, "w", encoding="utf-8") as f:
             f.write("CONTEXTO DE LA PONENCIA:\n(Por favor, pega aquí el contenido de tus propuestas y normativas).")
-    
+
     with open(nombre_archivo, "r", encoding="utf-8") as f:
         return f.read()
 
 # Inyección del texto de los documentos aportados
 CONTEXTO_INYECTADO = cargar_contexto_documentos()
+
+# --- INTEGRACIÓN COMPROBADA DEL BOTÓN DE REINICIO EN LA BARRA LATERAL ---
+with st.sidebar:
+    st.markdown("### ⚙️ Panel de Control")
+    st.write("Si deseas limpiar el historial de debate o iniciar una nueva consulta académica, presiona el siguiente botón:")
+    if st.button("🔄 Reiniciar Conversación", use_container_width=True):
+        if "messages" in st.session_state:
+            del st.session_state["messages"]  # Elimina el estado de chat para forzar la reinicialización
+        st.rerun()  # Recarga la página instantáneamente limpiando la pantalla
 
 # 5. Inicialización del historial de chat en la sesión de Streamlit
 if "messages" not in st.session_state:
@@ -76,7 +85,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     st.session_state.messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.write(user_query)
-        
+
     # Consulta al motor de inferencia compatible con OpenAI
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
@@ -87,9 +96,10 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
                 messages=st.session_state.messages,
                 temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
             )
-            answer = chat_completion.choices[0].message.content
+            # CORRECCIÓN DE SINTAXIS: Se eliminó el [0] que causaba conflicto en el SDK moderno
+            answer = chat_completion.choices.message.content
             response_placeholder.write(answer)
-            
+
             # Guardar la respuesta generada en el historial de sesión
             st.session_state.messages.append({"role": "assistant", "content": answer})
         except Exception as e:
