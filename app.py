@@ -9,7 +9,7 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("🧑🏻‍⚖️ Asistente Virtual: Ponencia Trabajo Social 2026")
+st.title("🧑🏻‍⚖️ Asistente Virtual: Gobierno Abierto y participación ciudadana")
 st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
 
 # 2. Conexión segura con la API Key (Almacenada en los Secrets de Streamlit)
@@ -94,7 +94,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             chat_completion = client.chat.completions.create(
                 model="openai/gpt-oss-120b",  # Modelo oficial de alta capacidad con Prompt Caching
                 messages=st.session_state.messages,
-                temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
+                temperature=0.1  # Temperatura baja para garantizar fidelidad estricta al texto
             )
             # CORRECCIÓN DE SINTAXIS: Se eliminó el [0] que causaba conflicto en el SDK moderno
             answer = chat_completion.choices.message.content
