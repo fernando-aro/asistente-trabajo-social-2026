@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 import os
+
 # 1. Configuración de la interfaz adaptativa para web y dispositivos móviles
 st.set_page_config(
     page_title="Asistente Democracia Participativa - TS 2026", 
@@ -10,17 +11,25 @@ st.set_page_config(
 
 st.title("🤖 Asistente Virtual: Ponencia Trabajo Social 2026")
 st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
-# 2. Conexión segura con la API Key (Almacenada en los Secrets de Streamlit)if "GROQ_API_KEY" in st.secrets:
-    api_key = st.secrets["GROQ_API_KEY"]elif "GROQ_API_KEY" in os.environ:
-    api_key = os.environ["GROQ_API_KEY"]else:
+
+# 2. Conexión segura con la API Key (Almacenada en los Secrets de Streamlit)
+if "GROQ_API_KEY" in st.secrets:
+    api_key = st.secrets["GROQ_API_KEY"]
+elif "GROQ_API_KEY" in os.environ:
+    api_key = os.environ["GROQ_API_KEY"]
+else:
     st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit Community Cloud.")
     st.stop()
-# 3. Inicialización del cliente OpenAI apuntando a los servidores rápidos de Groqclient = OpenAI(
+
+# 3. Inicialización del cliente OpenAI apuntando a los servidores rápidos de Groq
+client = OpenAI(
     api_key=api_key,
     base_url="https://api.groq.com/openai/v1"  # Endpoint de compatibilidad OpenAI
 )
+
 # 4. Función automática para leer el archivo de contexto externo (.txt)
-@st.cache_datadef cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
+@st.cache_data
+def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
     """
     Carga de forma automática las normativas, propuestas y referencias bibliográficas 
     guardadas en el archivo externo de texto plano.
@@ -28,11 +37,24 @@ st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propues
     if not os.path.exists(nombre_archivo):
         with open(nombre_archivo, "w", encoding="utf-8") as f:
             f.write("CONTEXTO DE LA PONENCIA:\n(Por favor, pega aquí el contenido de tus propuestas y normativas).")
-    
+
     with open(nombre_archivo, "r", encoding="utf-8") as f:
         return f.read()
-# Inyección del texto de los documentos aportadosCONTEXTO_INYECTADO = cargar_contexto_documentos()
-# 5. Inicialización del historial de chat en la sesión de Streamlitif "messages" not in st.session_state:
+
+# Inyección del texto de los documentos aportados
+CONTEXTO_INYECTADO = cargar_contexto_documentos()
+
+# --- INTEGRACIÓN COMPROBADA DEL BOTÓN DE REINICIO EN LA BARRA LATERAL ---
+with st.sidebar:
+    st.markdown("### ⚙️ Panel de Control")
+    st.write("Si deseas limpiar el historial de debate o iniciar una nueva consulta académica, presiona el siguiente botón:")
+    if st.button("🔄 Reiniciar Conversación", use_container_width=True):
+        if "messages" in st.session_state:
+            del st.session_state["messages"]  # Elimina el estado de chat para forzar la reinicialización
+        st.rerun()  # Recarga la página instantáneamente limpiando la pantalla
+
+# 5. Inicialización del historial de chat en la sesión de Streamlit
+if "messages" not in st.session_state:
     st.session_state["messages"] = [
         {
             "role": "system", 
@@ -46,21 +68,24 @@ st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propues
             "role": "assistant", 
             "content": (
                 "¡Hola! El bot asistente (con arquitectura OpenAI-Groq) está listo para responder tus consultas en tiempo real. "
-                "Puedes preguntar sobre el modelo del Órgano Colegiado, el Artículo 9 de la Constitución de Costa Rica, la Ley 8364, "
-                "los recortes presupuestarios en inversión social o la crítica a los seudo-satisfactores del IMAS y MIDEPLAN. ¿Qué deseas consultar?"
+                "¿Qué deseas consultar?"
             )
         }
     ]
-# 6. Renderizar el historial de conversación en pantallafor msg in st.session_state.messages:
+
+# 6. Renderizar el historial de conversación en pantalla
+for msg in st.session_state.messages:
     if msg["role"] != "system":
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
-# 7. Captura de la interacción y consulta del usuarioif user_query := st.chat_input("Escribe tu consulta académica o profesional aquí..."):
+
+# 7. Captura de la interacción y consulta del usuario
+if user_query := st.chat_input("Escribe tu consulta académica o profesional aquí..."):
     # Guardar y mostrar el mensaje enviado por el usuario
     st.session_state.messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.write(user_query)
-        
+
     # Consulta al motor de inferencia compatible con OpenAI
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
@@ -71,9 +96,10 @@ st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propues
                 messages=st.session_state.messages,
                 temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
             )
+            # SINTAXIS CORREGIDA: Se añadió [0] para mapear la primera opción del arreglo de respuestas
             answer = chat_completion.choices[0].message.content
             response_placeholder.write(answer)
-            
+
             # Guardar la respuesta generada en el historial de sesión
             st.session_state.messages.append({"role": "assistant", "content": answer})
         except Exception as e:
