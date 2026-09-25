@@ -9,7 +9,7 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("🧑🏻‍⚖️ Asistente Virtual: Gobierno Abierto y participación ciudadana")
+st.title("🤖 Asistente Virtual: Ponencia Trabajo Social 2026")
 st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
 
 # 2. Conexión segura con la API Key (Almacenada en los Secrets de Streamlit)
@@ -24,7 +24,7 @@ else:
 # 3. Inicialización del cliente OpenAI apuntando a los servidores rápidos de Groq
 client = OpenAI(
     api_key=api_key,
-    base_url="https://groq.com"  # Endpoint de compatibilidad OpenAI
+    base_url="https://api.groq.com/openai/v1"  # Endpoint de compatibilidad OpenAI
 )
 
 # 4. Función automática para leer el archivo de contexto externo (.txt)
@@ -44,22 +44,13 @@ def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
 # Inyección del texto de los documentos aportados
 CONTEXTO_INYECTADO = cargar_contexto_documentos()
 
-# --- INTEGRACIÓN COMPROBADA DEL BOTÓN DE REINICIO EN LA BARRA LATERAL ---
-with st.sidebar:
-    st.markdown("### ⚙️ Panel de Control")
-    st.write("Si deseas limpiar el historial de debate o iniciar una nueva consulta académica, presiona el siguiente botón:")
-    if st.button("🔄 Reiniciar Conversación", use_container_width=True):
-        if "messages" in st.session_state:
-            del st.session_state["messages"]  # Elimina el estado de chat para forzar la reinicialización
-        st.rerun()  # Recarga la página instantáneamente limpiando la pantalla
-
 # 5. Inicialización del historial de chat en la sesión de Streamlit
 if "messages" not in st.session_state:
     st.session_state["messages"] = [
         {
             "role": "system", 
             "content": (
-                "Eres un asistente académico experto en Trabajo Social, Derecho Constitucional, Participación Ciudadana, Gestión Pública y Derechos Humanos y en el sistema jurídico costarricense. "
+                "Eres un asistente académico experto en Trabajo Social, Gestión Pública y Derechos Humanos. "
                 "Responde las dudas de estudiantes y profesionales basándote estrictamente en el siguiente contexto legal, "
                 f"teórico y bibliográfico inyectado desde tus documentos oficiales:\n\n{CONTEXTO_INYECTADO}"
             )
@@ -94,10 +85,9 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             chat_completion = client.chat.completions.create(
                 model="openai/gpt-oss-120b",  # Modelo oficial de alta capacidad con Prompt Caching
                 messages=st.session_state.messages,
-                temperature=0.1  # Temperatura baja para garantizar fidelidad estricta al texto
+                temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
             )
-            # CORRECCIÓN DE SINTAXIS: Se eliminó el [0] que causaba conflicto en el SDK moderno
-            answer = chat_completion.choices.message.content
+            answer = chat_completion.choices[0].message.content
             response_placeholder.write(answer)
 
             # Guardar la respuesta generada en el historial de sesión
