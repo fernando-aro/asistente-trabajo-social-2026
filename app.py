@@ -1,4 +1,6 @@
-import streamlit as stfrom openai import OpenAIimport os
+import streamlit as st
+from openai import OpenAI
+import os
 # 1. Configuración de la interfaz adaptativa para web y dispositivos móviles
 st.set_page_config(
     page_title="Asistente Democracia Participativa - TS 2026", 
