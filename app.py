@@ -94,4 +94,15 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             # Guardar la respuesta generada en el historial de sesión
             st.session_state.messages.append({"role": "assistant", "content": answer})
         except Exception as e:
-            st.error(f"Ocurrió un error en la comunicación con el servidor: {e}")
+            # MENSAJE DE ERROR PERSONALIZADO EN ESPAÑOL
+            response_placeholder.empty() # Limpia cualquier texto residual colgado
+            st.error(
+                "⚠️ **Servicio temporalmente interrumpido**\n\n"
+                "En este momento, el motor de inferencia de la ponencia está experimentando "
+                "una alta demanda o una breve desconexión con los servidores de consulta pública.\n\n"
+                "**Por favor, intenta lo siguiente:**\n"
+                "1. Espera unos segundos y vuelve a enviar tu pregunta.\n"
+                "2. Recarga esta página en tu navegador web.\n\n"
+                "Si el problema persiste, agradecemos reportarlo al administrador de la plataforma "
+                "para restaurar el acceso en tiempo real a los documentos de la propuesta."
+            )
