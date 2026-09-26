@@ -47,14 +47,14 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
             
             for parrafo in parrafos:
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if modificaciones := modificaciones_bloque := coincidencias > 0:
+                if coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
     # Ordenar de mayor a menor coincidencia basados en el primer elemento de la tupla (coincidencias)
     bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
     
     if bloques_encontrados:
-        # CORRECCIÓN EXTRA CRÍTICA: Extraemos b[1] (el texto) para evitar el TypeError
+        # Extraemos el texto (segundo elemento de la tupla) para evitar el TypeError
         textos_filtrados = [b[1] for b in bloques_encontrados[:max_bloques]]
         return "\n\n---\n\n".join(textos_filtrados)
     
