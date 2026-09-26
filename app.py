@@ -20,10 +20,10 @@ if not api_key:
     st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit Community Cloud.")
     st.stop()
 
-# 3. Inicialización del cliente apuntando a los servidores rápidos de Groq
+# 3. Inicialización del cliente apuntando a los servidores de Groq
 client = OpenAI(
     api_key=api_key,
-    base_url="https://groq.com"  # CORRECCIÓN: Quitamos '/openai' para evitar el error 405
+    base_url="https://api.groq.com/openai/v1"  # Endpoint de compatibilidad correcto de Groq
 )
 
 # 4. Buscador inteligente de texto en múltiples archivos (Evita desborde de tokens)
@@ -43,22 +43,18 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=8):
     for ruta_archivo in archivos:
         with open(ruta_archivo, "r", encoding="utf-8") as f:
             contenido = f.read()
-            # Dividir los textos por párrafos basados en doble salto de línea
             parrafos = [p.strip() for p in contenido.split("\n\n") if len(p.strip()) > 30]
             
             for parrafo in parrafos:
-                # Calcular relevancia por coincidencia de términos
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
                 if coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
-    # Ordenar de mayor a menor coincidencia
     bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
     
     if bloques_encontrados:
         return "\n\n---\n\n".join([b[1] for b in bloques_encontrados[:max_bloques]])
     
-    # Fallback si no hay palabras clave que coincidan directamente
     return "No se encontraron coincidencias específicas en los documentos. Responde usando tu conocimiento general en Trabajo Social."
 
 # 5. Inicialización del historial de chat en la sesión de Streamlit
@@ -81,18 +77,14 @@ for msg in st.session_state.messages:
 
 # 7. Captura de la interacción y consulta del usuario
 if user_query := st.chat_input("Escribe tu consulta académica o profesional aquí..."):
-    # Mostrar de inmediato la consulta en la interfaz de usuario
     with st.chat_message("user"):
         st.write(user_query)
     
-    # 🔍 DETECCIÓN JURÍDICA: Verificar si la consulta pide leyes o normativas de Costa Rica
     conceptos_legales = ["ley", "articulo", "constitución", "decreto", "reforma", "normativa", "8364", "artí", "sinalevi"]
     es_consulta_legal = any(palabra in user_query.lower() for palabra in conceptos_legales)
     
-    # Extraer el fragmento de texto relacionado de los archivos de texto locales
     contexto_dinamico = escanear_todos_los_contextos(user_query)
     
-    # Instrucciones estrictas para el comportamiento del modelo de lenguaje
     prompt_sistema = {
         "role": "system",
         "content": (
@@ -106,22 +98,20 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
         )
     }
     
-    # Limitar el historial enviado a la API a los últimos 4 mensajes para optimizar el consumo de tokens
     historial_reciente = st.session_state.messages[-4:]
     mensajes_para_api = [prompt_sistema] + historial_reciente + [{"role": "user", "content": user_query}]
     
-    # Consulta al motor de inferencia de producción estable en Groq
+    with st.chat_message("assistant"):
+        try:
             stream = client.chat.completions.create(
-                model="openai/gpt-oss-20b",  # REEMPLAZO OFICIAL ACTIVO EN PRODUCTION
+                model="openai/gpt-oss-20b",  # ID de producción estable y activo de Groq
                 messages=mensajes_para_api,
                 temperature=0.2,               
                 stream=True                    
             )
             
-            # st.write_stream muestra el texto palabra por palabra conforme se genera
             answer = st.write_stream(stream)
             
-            # 🔗 Inyección dinámica de validación jurídica externa (SINALEVI)
             if es_consulta_legal:
                 query_codificado = urllib.parse.quote_plus(user_query)
                 url_sinalevi = f"http://sinalevi.go.cr{query_codificado}"
@@ -133,7 +123,6 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
                     f"puedes verificar directamente los términos de tu consulta en el [Buscador del Sistema Nacional de Leyes Vigentes (SINALEVI)]({url_sinalevi} \"Búsqueda SINALEVI\")."
                 )
             
-            # Guardar la conversación real completa en el historial de sesión de Streamlit
             st.session_state.messages.append({"role": "user", "content": user_query})
             st.session_state.messages.append({"role": "assistant", "content": answer})
             
