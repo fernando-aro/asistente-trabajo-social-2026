@@ -98,7 +98,19 @@ if user_query := st.chat_input("Escribe tu consulta aquí..."):
         try:
             # 1. Generar respuesta del LLM en tiempo real
             stream = client.chat.completions.create(
-                model="openai/gpt-oss-120b",
+                        try:
+            # CORRECCIÓN: Cambiar a un identificador 100% activo en el endpoint de Groq
+            stream = client.chat.completions.create(
+                model="llama-3.1-8b-instant",  # Modelo estable, veloz y con soporte total de streaming
+                messages=mensajes_para_api,
+                temperature=0.2,
+                stream=True
+            )
+            
+            # Renderizar respuesta fluida
+            answer = st.write_stream(stream)
+            
+            # (El resto del código de guardado en st.session_state se mantiene igual)
                 messages=mensajes_para_api,
                 temperature=0.2,
                 stream=True
