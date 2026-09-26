@@ -95,7 +95,7 @@ if user_query := st.chat_input("Escribe tu consulta aquí..."):
     mensajes_para_api = [prompt_sistema] + historial_reciente + [{"role": "user", "content": user_query}]
     
     with st.chat_message("assistant"):
-        try:
+
             # 1. Generar respuesta del LLM en tiempo real
             stream = client.chat.completions.create(
                         try:
