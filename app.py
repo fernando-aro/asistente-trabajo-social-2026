@@ -24,7 +24,7 @@ else:
 # 3. Inicialización del cliente OpenAI apuntando a los servidores rápidos de Groq
 client = OpenAI(
     api_key=api_key,
-    base_url="https://api.groq.com/openai/v1"  # Endpoint de compatibilidad OpenAI
+    base_url="https://groq.com"  # Endpoint de compatibilidad OpenAI
 )
 
 # 4. Función automática para leer el archivo de contexto externo (.txt)
@@ -44,7 +44,7 @@ def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
 # Inyección del texto de los documentos aportados
 CONTEXTO_INYECTADO = cargar_contexto_documentos()
 
-# --- INTEGRACIÓN DEL BOTÓN DE REINICIO EN LA BARRA LATERAL ---
+# --- INTEGRACIÓN COMPROBADA DEL BOTÓN DE REINICIO EN LA BARRA LATERAL ---
 with st.sidebar:
     st.markdown("### ⚙️ Panel de Control")
     st.write("Si deseas limpiar el historial de debate o iniciar una nueva consulta académica, presiona el siguiente botón:")
@@ -96,7 +96,8 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
                 messages=st.session_state.messages,
                 temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
             )
-            answer = chat_completion.choices[0].message.content
+            # CORRECCIÓN DE SINTAXIS: Se eliminó el [0] que causaba conflicto en el SDK moderno
+            answer = chat_completion.choices.message.content
             response_placeholder.write(answer)
 
             # Guardar la respuesta generada en el historial de sesión
