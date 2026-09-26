@@ -1,130 +1,127 @@
 import streamlit as st
 from openai import OpenAI
 import os
+import glob
 
-# 1. Configuración de la interfaz
-st.set_page_config(
-    page_title="Asistente Democracia Participativa - TS 2026", 
-    page_icon="⚖️", 
-    layout="centered"
-)
-
+# 1. Interfaz
+st.set_page_config(page_title="Asistente TS 2026", page_icon="⚖️", layout="centered")
 st.title("🤖 Asistente Virtual: Ponencia Trabajo Social 2026")
-st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
+st.subheader("Consultas basadas en Max-Neef, Ley 8364 y Democracia Participativa")
 
-# 2. Conexión segura con la API Key
-api_key = None
-if "GROQ_API_KEY" in st.secrets:
-    api_key = st.secrets["GROQ_API_KEY"]
-elif "GROQ_API_KEY" in os.environ:
-    api_key = os.environ["GROQ_API_KEY"]
-else:
-    st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit.")
+# 2. Credenciales
+api_key = st.secrets.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY")
+if not api_key:
+    st.error("⚠️ Falta la API Key en los Secrets de Streamlit.")
     st.stop()
 
-# 3. Inicialización del cliente
-client = OpenAI(
-    api_key=api_key,
-    base_url="https://api.groq.com/openai/v1"
-)
+client = OpenAI(api_key=api_key, base_url="https://groq.com")
 
-# 4. Buscador inteligente de texto plano (Evita el desborde de tokens)
+# 3. Buscador Ampliado Multi-archivo
 @st.cache_data
-def obtener_contexto_relevante(consulta_usuario, nombre_archivo="documentos_contexto.txt", max_parrafos=6):
+def escanear_todos_los_contextos(consulta_usuario, max_bloques=8):
     """
-    Lee el archivo pesado y extrae únicamente los párrafos que contienen 
-    palabras clave asociadas a la pregunta del usuario.
+    Busca palabras clave en TODOS los archivos .txt de la carpeta.
+    Prioriza las coincidencias exactas para armar el mejor contexto posible.
     """
-    if not os.path.exists(nombre_archivo):
-        with open(nombre_archivo, "w", encoding="utf-8") as f:
-            f.write("CONTEXTO DE LA PONENCIA:\n(Pega aquí tus propuestas, Ley 8364 y teoría de Max-Neef).")
-        return "Archivo vacío creado."
+    archivos = glob.glob("*.txt")
+    if not archivos:
+        return "No se encontraron archivos de contexto (.txt)."
 
-    with open(nombre_archivo, "r", encoding="utf-8") as f:
-        lineas = f.readlines()
+    palabras_clave = [p.lower() for p in consulta_usuario.split() if len(p) > 3]
+    bloques_encontrados = []
 
-    # Limpieza básica y separación por párrafos/bloques
-    bloques = [b.strip() for b in lineas if len(b.strip()) > 20]
-    
-    # Extraer palabras clave de la consulta del usuario
-    palabras = [p.lower() for p in consulta_usuario.split() if len(p) > 3]
-    
-    # Puntuar bloques basados en coincidencias
-    bloques_puntuados = []
-    for bloque in bloques:
-        puntos = sum(1 for p in palabras if p in bloque.lower())
-        if puntos > 0:
-            bloques_puntuados.append((puntos, bloque))
+    for ruta_archivo in archivos:
+        with open(ruta_archivo, "r", encoding="utf-8") as f:
+            # Dividir por líneas o bloques separados por doble espacio
+            contenido = f.read()
+            parrafos = [p.strip() for p in contenido.split("\n\n") if len(p.strip()) > 30]
             
-    # Ordenar por relevancia
-    bloques_puntuados.sort(key=lambda x: x[0], reverse=True)
-    
-    # Si encuentra coincidencias, devuelve los mejores bloques; si no, toma los primeros como fallback
-    if bloques_puntuados:
-        fragmentos = [b[1] for b in bloques_puntuados[:max_parrafos]]
-    else:
-        fragmentos = bloques[:max_parrafos]
-        
-    return "\n\n".join(fragmentos)
+            for parrafo in parrafos:
+                # Calcular relevancia
+                coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
+                if coincidencias > 0:
+                    bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
-# 5. Inicialización básica del historial de chat
+    # Ordenar de mayor a menor coincidencia
+    bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
+    
+    if bloques_encontrados:
+        return "\n\n---\n\n".join([b[1] for b in bloques_encontrados[:max_bloques]])
+    
+    # Fallback: Si no hay palabras clave que coincidan, enviar fragmentos generales iniciales
+    return "No se encontraron coincidencias específicas en los documentos. Responde usando tu conocimiento general en Trabajo Social."
+
+# 4. Historial de Chat
 if "messages" not in st.session_state:
     st.session_state["messages"] = [
-        {
-            "role": "assistant", 
-            "content": (
-                "¡Hola! El bot asistente con arquitectura optimizada está listo. "
-                "Puedes consultar sobre el modelo del Órgano Colegiado, el Artículo 9 de la Constitución, la Ley 8364, "
-                "los recortes presupuestarios en inversión social o la crítica a Max-Neef. ¿Qué deseas consultar?"
-            )
-        }
+        {"role": "assistant", "content": "¡Hola! Estoy listo. He cargado tus documentos base de Costa Rica, la Ley 8364 y Max-Neef. ¿Qué deseas consultar?"}
     ]
 
-# 6. Renderizar historial
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 7. Captura de interacción y consulta filtrada
-if user_query := st.chat_input("Escribe tu consulta académica o profesional aquí..."):
-    # Mostrar consulta del usuario en pantalla
+import urllib.parse  # Requerido para codificar los caracteres de la consulta en la URL
+
+# ... (Mantener las secciones 1, 2, 3 y 4 del script multi-archivo anterior) ...
+
+# 5. Interacción del usuario y procesamiento
+if user_query := st.chat_input("Escribe tu consulta aquí..."):
     with st.chat_message("user"):
         st.write(user_query)
     
-    # Extraer SOLAMENTE el fragmento de texto relacionado con lo que el usuario preguntó
-    contexto_filtrado = obtener_contexto_relevante(user_query)
+    # 🔍 DETECCIÓN JURÍDICA: Verificar si la consulta pide leyes, artículos o normativas de Costa Rica
+    conceptos_legales = ["ley", "articulo", "constitución", "decreto", "reforma", "normativa", "8364", "artí"]
+    es_consulta_legal = any(palabra in user_query.lower() for palabra in conceptos_legales)
     
-    # Construcción dinámica de la instrucción para esta pregunta específica
+    # Buscar primero coincidencias locales en tus archivos .txt cargados
+    contexto_dinamico = escanear_todos_los_contextos(user_query)
+    
     prompt_sistema = {
         "role": "system",
         "content": (
-            "Eres un asistente académico experto en Trabajo Social, Gestión Pública y Derechos Humanos. "
-            "Responde de forma concisa basándote estrictamente en este fragmento extraído de tus documentos:\n\n"
-            f"{contexto_filtrado}"
+            "Eres un asistente académico de nivel doctoral experto en Trabajo Social y Gestión Pública en Costa Rica.\n\n"
+            "INSTRUCCIONES DE BÚSQUEDA Y RESPUESTA:\n"
+            "1. Revisa primero este contexto extraído de nuestros documentos oficiales:\n"
+            f"{contexto_dinamico}\n\n"
+            "2. Si la respuesta está en los documentos, priorízala y cítala formalmente.\n"
+            "3. Si la información no es suficiente, complementa con tu conocimiento general institucional.\n"
+            "4. Sé riguroso, ético y crítico. Si el usuario te pregunta por leyes vigentes, recuérdale "
+            "amablemente verificar la última versión publicada en el diario oficial La Gaceta o SINALEVI."
         )
     }
     
-    # Preparar el paquete de mensajes: Sistema + Historial Reciente + Pregunta Actual
-    # Tomamos solo las últimas 3 interacciones para proteger el límite de tokens
-    historial_reciente = st.session_state.messages[-3:]
+    historial_reciente = st.session_state.messages[-4:]
     mensajes_para_api = [prompt_sistema] + historial_reciente + [{"role": "user", "content": user_query}]
     
-    # Consulta al motor de inferencia
     with st.chat_message("assistant"):
         try:
+            # 1. Generar respuesta del LLM en tiempo real
             stream = client.chat.completions.create(
-                model="openai/gpt-oss-120b",  # Cambia por "llama-3.1-8b-instant" si deseas mayor velocidad
+                model="openai/gpt-oss-120b",
                 messages=mensajes_para_api,
                 temperature=0.2,
                 stream=True
             )
-            
-            # Renderizar respuesta fluida
             answer = st.write_stream(stream)
             
-            # Guardar en el historial de sesión la conversación real
+            # 2. Inyección dinámica del validador SINALEVI si la consulta es de orden jurídico
+            if es_consulta_legal:
+                # Limpiar y formatear la consulta para construir un query string seguro para la URL
+                query_codificado = urllib.parse.quote_plus(user_query)
+                # URL base de búsqueda por texto libre en el Sistema Nacional de Leyes Vigentes de Costa Rica
+                url_sinalevi = f"http://sinalevi.go.cr{query_codificado}"
+                
+                st.markdown("---")
+                st.caption("⚖️ **Validación Jurídica en Tiempo Real (Costa Rica):**")
+                st.info(
+                    "Para asegurar que la norma consultada no haya sufrido reformas recientes, "
+                    f"puedes verificar directamente los términos de tu consulta en el [Buscador del Sistema Nacional de Leyes Vigentes (SINALEVI)]({url_sinalevi} \"Búsqueda SINALEVI\")."
+                )
+            
+            # Guardar la interacción en el historial interno
             st.session_state.messages.append({"role": "user", "content": user_query})
             st.session_state.messages.append({"role": "assistant", "content": answer})
             
         except Exception as e:
-            st.error(f"Ocurrió un error en la comunicación con el servidor: {e}")
+            st.error(f"Error de comunicación: {e}")
