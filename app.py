@@ -82,12 +82,12 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     # Consulta al motor de inferencia compatible con OpenAI
     with st.chat_message("assistant"):
         try:
-            # Corrección del modelo y habilitación de streaming para respuesta fluida
+            # CORRECCIÓN: Usando el ID oficial exacto de Groq
             stream = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",  # Modelo válido de Groq de alta capacidad
+                model="llama-3.3-70b-specdec",  # Reemplazar por tu modelo asignado de Groq 
                 messages=st.session_state.messages,
-                temperature=0.2,  # Temperatura baja para fidelidad estricta
-                stream=True       # Envío de tokens por flujo
+                temperature=0.2,  
+                stream=True       
             )
             
             # st.write_stream consume el generador y muestra el texto en tiempo real
