@@ -110,6 +110,4 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
 
             # Guardar la respuesta generada en el historial de sesión
             st.session_state.messages.append({"role": "assistant", "content": answer})
-        except Exception as e:
-            # CAMBIO SUGERIDO: Mostrar log técnico de depuración exclusivo para el administrador
-            st.sidebar.error(f"🔍 Error técnico de la API: {e}")
+      
