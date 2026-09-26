@@ -12,7 +12,8 @@ st.set_page_config(
 st.title("🤖 Asistente Virtual: Ponencia Trabajo Social 2026")
 st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
 
-# 2. Conexión segura con la API Key (Almacenada en los Secrets de Streamlit)
+# 2. Conexión segura con la API Key (Almacenada en los Secrets de Streamlit o variables de entorno)
+api_key = None
 if "GROQ_API_KEY" in st.secrets:
     api_key = st.secrets["GROQ_API_KEY"]
 elif "GROQ_API_KEY" in os.environ:
@@ -80,18 +81,20 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
         
     # Consulta al motor de inferencia compatible con OpenAI
     with st.chat_message("assistant"):
-        response_placeholder = st.empty()
         try:
-            # Llamada estándar usando el catálogo actualizado de Groq
-            chat_completion = client.chat.completions.create(
-                model="openai/gpt-oss-120b",  # Modelo oficial de alta capacidad con Prompt Caching
+            # Corrección del modelo y habilitación de streaming para respuesta fluida
+            stream = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",  # Modelo válido de Groq de alta capacidad
                 messages=st.session_state.messages,
-                temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
+                temperature=0.2,  # Temperatura baja para fidelidad estricta
+                stream=True       # Envío de tokens por flujo
             )
-            answer = chat_completion.choices[0].message.content
-            response_placeholder.write(answer)
+            
+            # st.write_stream consume el generador y muestra el texto en tiempo real
+            answer = st.write_stream(stream)
             
             # Guardar la respuesta generada en el historial de sesión
             st.session_state.messages.append({"role": "assistant", "content": answer})
+            
         except Exception as e:
             st.error(f"Ocurrió un error en la comunicación con el servidor: {e}")
