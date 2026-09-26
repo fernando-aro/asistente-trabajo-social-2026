@@ -12,7 +12,8 @@ st.set_page_config(
 st.title("🤖 Asistente Virtual: Ponencia Trabajo Social 2026")
 st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
 # 2. Conexión segura con la API Key de Groq desde los Secrets de Streamlitif "GROQ_API_KEY" in st.secrets:
-    api_key = st.secrets["GROQ_API_KEY"]elif "GROQ_API_KEY" in os.environ:
+    api_key = st.secrets["GROQ_API_KEY"]
+elif "GROQ_API_KEY" in os.environ:
     api_key = os.environ["GROQ_API_KEY"]else:
     st.error("⚠️ No se encontró la API Key de Groq. Configúrala como GROQ_API_KEY en los Secrets de Streamlit Community Cloud.")
     st.stop()
