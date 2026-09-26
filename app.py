@@ -20,10 +20,10 @@ if not api_key:
     st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit Community Cloud.")
     st.stop()
 
-# 3. Inicialización del cliente apuntando a los servidores de Groq
+# 3. Inicialización del cliente apuntando a los servidores rápidos de Groq
 client = OpenAI(
     api_key=api_key,
-    base_url="https://groq.com"  # Endpoint de compatibilidad OpenAI en Groq
+    base_url="https://groq.com"  # CORRECCIÓN: Quitamos '/openai' para evitar el error 405
 )
 
 # 4. Buscador inteligente de texto en múltiples archivos (Evita desborde de tokens)
@@ -111,10 +111,8 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     mensajes_para_api = [prompt_sistema] + historial_reciente + [{"role": "user", "content": user_query}]
     
     # Consulta al motor de inferencia de producción estable en Groq
-    with st.chat_message("assistant"):
-        try:
             stream = client.chat.completions.create(
-                model="mixtral-8x22b-instruct",  # REEMPLAZO OFICIAL ACTIVO EN GROQ
+                model="openai/gpt-oss-20b",  # REEMPLAZO OFICIAL ACTIVO EN PRODUCTION
                 messages=mensajes_para_api,
                 temperature=0.2,               
                 stream=True                    
