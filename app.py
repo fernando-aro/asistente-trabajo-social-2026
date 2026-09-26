@@ -109,3 +109,4 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
                 "2. Recarga esta página en tu navegador web.\n\n"
                 "Si el problema persiste, agradecemos reportarlo al administrador de la plataforma "
                 "para restaurar el acceso en tiempo real a los documentos de la propuesta."
+)
