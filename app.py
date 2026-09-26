@@ -24,7 +24,7 @@ else:
 # 3. Inicialización del cliente OpenAI apuntando a los servidores rápidos de Groq
 client = OpenAI(
     api_key=api_key,
-    base_url="https://api.groq.com/openai/v1"  # Endpoint de compatibilidad OpenAI
+    base_url="https://groq.com"  # Endpoint de compatibilidad OpenAI
 )
 
 # 4. Función automática para leer el archivo de contexto externo (.txt)
@@ -37,7 +37,7 @@ def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
     if not os.path.exists(nombre_archivo):
         with open(nombre_archivo, "w", encoding="utf-8") as f:
             f.write("CONTEXTO DE LA PONENCIA:\n(Por favor, pega aquí el contenido de tus propuestas y normativas).")
-    
+
     with open(nombre_archivo, "r", encoding="utf-8") as f:
         return f.read()
 
@@ -50,10 +50,10 @@ if "messages" not in st.session_state:
         {
             "role": "system", 
             "content": (
-"REGLAS ESTRICTAS DE OPERACIÓN:\n"
+                "REGLAS ESTRICTAS DE OPERACIÓN:\n"
                 "1. Actúa como un asistente académico riguroso para la ponencia de Trabajo Social 2026.\n"
                 "2. Está terminantemente prohibido inventar datos.\n"
-                "3. Ante consultas sobre la Constitución Política de Costa Rica buscar estrictamente cada artículo en esta dirección https://sinalevi.go.cr/ResultadosNormativa/Informacion?param1=871&param2=147492&param3=1, para búsqueda de otras leyes y reglamentos buscar siempre en el Sistema Nacional de Leyes Vigentes sinalevi.go.cr.\n"
+                "3. Ante consultas sobre la Constitución Política de Costa Rica buscar estrictamente cada artículo en esta dirección https://sinalevi.go.cr, para búsqueda de otras leyes y reglamentos buscar siempre en el Sistema Nacional de Leyes Vigentes sinalevi.go.cr.\n"
                 "Eres un asistente académico experto en Trabajo Social, Derecho Constitucional y Administrativo, Gestión Pública, Participación Ciudadana y Derechos Humanos. "
                 "Responde las dudas de estudiantes y profesionales basándote estrictamente en el siguiente contexto legal, "
                 f"teórico y bibliográfico inyectado desde tus documentos oficiales:\n\n{CONTEXTO_INYECTADO}"
@@ -81,20 +81,20 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     st.session_state.messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.write(user_query)
-        
+
     # Consulta al motor de inferencia compatible con OpenAI
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
         try:
             # Llamada estándar usando el catálogo actualizado de Groq
             chat_completion = client.chat.completions.create(
-                model="openai/gpt-oss-120b",  # Modelo oficial de alta capacidad con Prompt Caching
+                model="llama-3.1-70b-versatile",  # REPARADO: Modelo oficial activo en Groq
                 messages=st.session_state.messages,
                 temperature=0.0  # Temperatura baja para garantizar fidelidad estricta al texto
             )
             answer = chat_completion.choices[0].message.content
             response_placeholder.write(answer)
-            
+
             # Guardar la respuesta generada en el historial de sesión
             st.session_state.messages.append({"role": "assistant", "content": answer})
         except Exception as e:
