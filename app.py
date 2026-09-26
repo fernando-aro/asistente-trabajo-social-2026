@@ -37,7 +37,7 @@ def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
     if not os.path.exists(nombre_archivo):
         with open(nombre_archivo, "w", encoding="utf-8") as f:
             f.write("CONTEXTO DE LA PONENCIA:\n(Por favor, pega aquí el contenido de tus propuestas y normativas).")
-
+    
     with open(nombre_archivo, "r", encoding="utf-8") as f:
         return f.read()
 
@@ -81,7 +81,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     st.session_state.messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.write(user_query)
-
+        
     # Consulta al motor de inferencia compatible con OpenAI
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
@@ -94,7 +94,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             )
             answer = chat_completion.choices[0].message.content
             response_placeholder.write(answer)
-
+            
             # Guardar la respuesta generada en el historial de sesión
             st.session_state.messages.append({"role": "assistant", "content": answer})
         except Exception as e:
@@ -109,4 +109,3 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
                 "2. Recarga esta página en tu navegador web.\n\n"
                 "Si el problema persiste, agradecemos reportarlo al administrador de la plataforma "
                 "para restaurar el acceso en tiempo real a los documentos de la propuesta."
-            )
