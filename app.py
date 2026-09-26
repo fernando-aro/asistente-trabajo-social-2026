@@ -82,18 +82,26 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     # Consulta al motor de inferencia compatible con OpenAI
     with st.chat_message("assistant"):
         try:
-            # CORRECCIÓN: Usando el modelo oficial activo en Groq con streaming habilitado
+            # --- ESTRATEGIA DE RECORTE DE CONTEXTO (Manejo de Ventana) ---
+            # Si hay demasiados mensajes guardados, conservamos el mensaje de sistema (índice 0)
+            # y los últimos 4 turnos de chat para no saturar la memoria del modelo.
+            mensajes_optimizados = st.session_state.messages.copy()
+            if len(mensajes_optimizados) > 6:
+                # Mantiene el prompt de sistema inicial + los últimos 4 mensajes
+                mensajes_optimizados = [mensajes_optimizados[0]] + mensajes_optimizados[-4:]
+            
+            # Consulta al modelo oficial activo de Groq usando la lista optimizada
             stream = client.chat.completions.create(
-                model="openai/gpt-oss-120b",  # Reemplazo oficial recomendado en Groq
-                messages=st.session_state.messages,
-                temperature=0.2,              # Temperatura baja para fidelidad estricta al texto de contexto
-                stream=True                   # Envío de tokens por flujo en tiempo real
+                model="openai/gpt-oss-120b",  # Modelo activo con alta capacidad de comprensión
+                messages=mensajes_optimizados, # Enviamos la versión controlada libre de saturación
+                temperature=0.2,              
+                stream=True                   
             )
             
             # st.write_stream consume el generador de tokens de Groq y los muestra en pantalla
             answer = st.write_stream(stream)
             
-            # Guardar la respuesta generada en el historial de sesión
+            # Guardar la respuesta generada en el historial de sesión real
             st.session_state.messages.append({"role": "assistant", "content": answer})
             
         except Exception as e:
