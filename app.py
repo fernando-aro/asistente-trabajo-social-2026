@@ -9,8 +9,8 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("🤖 Asistente Virtual: Ponencia Trabajo Social 2026")
-st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
+st.title("🧑🏻‍💻 Asistente Virtual: Ponencia Trabajo Social 2026")
+st.subheader("Consultas basadas en la Teoría de Max-Neef, Constitución Política y Derechos Humanos")
 
 # 2. Conexión segura con la API Key (Almacenada en los Secrets de Streamlit)
 if "GROQ_API_KEY" in st.secrets:
@@ -50,7 +50,7 @@ if "messages" not in st.session_state:
         {
             "role": "system", 
             "content": (
-                "Eres un asistente académico experto en Trabajo Social, Gestión Pública y Derechos Humanos. "
+                "Eres un asistente académico experto en Trabajo Social, Derecho Constitucional y Administrativo, Gestión Pública, Participación Ciudadana y Derechos Humanos. "
                 "Responde las dudas de estudiantes y profesionales basándote estrictamente en el siguiente contexto legal, "
                 f"teórico y bibliográfico inyectado desde tus documentos oficiales:\n\n{CONTEXTO_INYECTADO}"
             )
@@ -58,9 +58,9 @@ if "messages" not in st.session_state:
         {
             "role": "assistant", 
             "content": (
-                "¡Hola! El bot asistente (con arquitectura OpenAI-Groq) está listo para responder tus consultas en tiempo real. "
-                "Puedes preguntar sobre el modelo del Órgano Colegiado, el Artículo 9 de la Constitución de Costa Rica, la Ley 8364, "
-                "los recortes presupuestarios en inversión social o la crítica a los seudo-satisfactores del IMAS y MIDEPLAN. ¿Qué deseas consultar?"
+                "¡Hola! El bot asistente (creado por ARO | Asesoría en Recursos Organizacionales) está listo para responder tus consultas. "
+                "Puedes preguntar sobre el modelo del Órgano Colegiado para la Institucionalización de la Participación Ciudadana, el Artículo 9 de la Constitución de Costa Rica, "
+                "los recortes presupuestarios en inversión social y la teoría de Necesidades Humanas Fundamentales de Max-Neef. ¿Qué deseas consultar?"
             )
         }
     ]
@@ -86,7 +86,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             chat_completion = client.chat.completions.create(
                 model="openai/gpt-oss-120b",  # Modelo oficial de alta capacidad con Prompt Caching
                 messages=st.session_state.messages,
-                temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
+                temperature=0.1  # Temperatura baja para garantizar fidelidad estricta al texto
             )
             answer = chat_completion.choices[0].message.content
             response_placeholder.write(answer)
