@@ -19,6 +19,7 @@ st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propues
     api_key=api_key,
     base_url="https://api.groq.com/openai/v1"  # Endpoint de compatibilidad OpenAI
 )
+
 # 4. Función automática para leer el archivo de contexto externo (.txt)
 @st.cache_datadef cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
     """
