@@ -1,5 +1,5 @@
 import streamlit as st
-from openai import OpenAI
+from groq import Groq  # Migración a la librería oficial nativa de Groq
 import os
 import glob
 import urllib.parse
@@ -20,18 +20,15 @@ if not api_key:
     st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit Community Cloud.")
     st.stop()
 
-# 3. Inicialización del cliente apuntando a los servidores de Groq
-client = OpenAI(
-    api_key=api_key,
-    base_url="https://groq.com"
-)
+# 3. Inicialización del cliente NATIVO de Groq (Elimina el error 405)
+client = Groq(api_key=api_key)
 
 # 4. Buscador inteligente de texto restringido para Planes Gratuitos (Anti Error 413)
 @st.cache_data
 def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
     """
     Busca palabras clave en TODOS los archivos .txt de la carpeta.
-    Limita estrictamente el contexto enviado para no saturar el límite TPM de 8000 tokens.
+    Limita estrictamente el contexto enviado para no saturar el límite TPM de tokens.
     """
     archivos = glob.glob("*.txt")
     if not archivos:
@@ -47,14 +44,14 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
             
             for parrafo in parrafos:
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if coincidencias > 0:
+                if modificaciones := coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
-    # Ordenar de mayor a menor coincidencia basados en el primer elemento de la tupla (coincidencias)
+    # Ordenar de mayor a menor coincidencia
     bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
     
     if bloques_encontrados:
-        # Extraemos el texto (segundo elemento de la tupla) para evitar el TypeError
+        # Extraemos solo el texto (segundo elemento de la tupla)
         textos_filtrados = [b[1] for b in bloques_encontrados[:max_bloques]]
         return "\n\n---\n\n".join(textos_filtrados)
     
@@ -99,14 +96,14 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
         )
     }
     
-    # Recortar el historial al mínimo absoluto (solo la última interacción) para ahorrar tokens de entrada
     historial_reciente = st.session_state.messages[-2:]
     mensajes_para_api = [prompt_sistema] + historial_reciente + [{"role": "user", "content": user_query}]
     
     with st.chat_message("assistant"):
         try:
+            # Llamada nativa utilizando el motor oficial de Groq
             stream = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
+                model="llama3-8b-8192",  # Modelo estable, gratuito y de producción masiva en Groq
                 messages=mensajes_para_api,
                 temperature=0.2,               
                 stream=True                    
