@@ -113,16 +113,3 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
         except Exception as e:
             # CAMBIO SUGERIDO: Mostrar log técnico de depuración exclusivo para el administrador
             st.sidebar.error(f"🔍 Error técnico de la API: {e}")
-            
-            response_placeholder.empty() # Limpia cualquier texto residual colgado
-            st.error(
-                "⚠️ **Servicio temporalmente interrumpido**\n\n"
-                "En este momento, el motor de inferencia de la ponencia está experimentando "
-                "una alta demanda o una breve desconexión con los servidores de consulta pública.\n\n"
-                "**Por favor, intenta lo siguiente:**\n"
-                "1. Espera unos segundos y vuelve a enviar tu pregunta.\n"
-                "2. Selecciona un modelo diferente en la barra lateral izquierda.\n"
-                "3. Recarga esta página en tu navegador web.\n\n"
-                "Si el problema persiste, agradecemos reportarlo al administrador de la plataforma "
-                "para restaurar el acceso en tiempo real a los documentos de la propuesta."
-            )
