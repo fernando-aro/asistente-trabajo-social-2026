@@ -1,6 +1,6 @@
 import streamlit as st
-from openai 
-import Groqimport os
+from gorq import Groq
+import os
 
 # 1. Configuración de la interfaz adaptativa para web y dispositivos móviles
 st.set_page_config(
