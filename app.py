@@ -109,5 +109,6 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             response_placeholder.write(answer)
 
             # Guardar la respuesta generada en el historial de sesión
-            st.session_state.messages.append({"role": "assistant", "content": answer})
+            st.session_state.messages.append({"role": "assistant", "content": answer}
+)
       
