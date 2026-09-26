@@ -114,10 +114,10 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     with st.chat_message("assistant"):
         try:
             stream = client.chat.completions.create(
-                model="llama-3.1-8b-instant",  # Reemplazo oficial estable y veloz con soporte streaming
+                model="openai/gpt-oss-20b",  # REEMPLAZO OFICIAL ACTIVO EN GROQ
                 messages=mensajes_para_api,
-                temperature=0.2,               # Temperatura baja para garantizar fidelidad académica
-                stream=True                    # Habilitación de flujo de texto en tiempo real
+                temperature=0.2,               
+                stream=True                    
             )
             
             # st.write_stream muestra el texto palabra por palabra conforme se genera
