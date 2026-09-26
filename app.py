@@ -49,7 +49,7 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=8):
             for parrafo in parrafos:
                 # Calcular relevancia por coincidencia de términos
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if %s_coincidencias := coincidencias > 0:
+                if coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
     # Ordenar de mayor a menor coincidencia
