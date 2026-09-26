@@ -2,7 +2,7 @@ import streamlit as st
 from openai import OpenAI
 import os
 
-# 1. Configuración de la interfaz adaptativa para web y dispositivos móviles
+# 1. Configuración de la interfaz responsiva para web, tablets y dispositivos móviles
 st.set_page_config(
     page_title="Asistente Democracia Participativa - TS 2026", 
     page_icon="⚖️", 
@@ -21,7 +21,7 @@ else:
     st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit Community Cloud.")
     st.stop()
 
-# Inicialización del cliente OpenAI apuntando a los servidores rápidos de Groq
+# Inicialización del cliente OpenAI compatible con la infraestructura rápida de Groq
 client = OpenAI(
     api_key=api_key,
     base_url="https://groq.com"
@@ -41,61 +41,61 @@ def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
     with open(nombre_archivo, "r", encoding="utf-8") as f:
         return f.read()
 
-# --- CRUCIAL: ESTA LÍNEA DEBE EJECUTARSE ANTES DEL HISTORIAL DEL CHAT ---
-# Aquí cargamos y definimos la variable en memoria para evitar el NameError
+# --- CARGA PREVIA DE DATOS (Previene el NameError) ---
 CONTEXTO_INYECTADO = cargar_contexto_documentos()
 
-# 4. Inicialización del historial de chat BLINDADO en la sesión de Streamlit
-if "messages" not in st.session_state:
-    st.session_state["messages"] = [
-        {
-            "role": "system", 
-            "content": (
-                "REGLAS ESTRICTAS DE OPERACIÓN:\n"
-                "1. Actúa como un asistente académico riguroso para la ponencia de Trabajo Social 2026.\n"
-                "2. Tu ÚNICA fuente de verdad es el contexto provisto a continuación. Está terminantemente prohibido usar conocimientos externos o inventar datos.\n"
-                "3. Si la respuesta a la pregunta del usuario NO se encuentra explícitamente detallada, sugerida o referenciada en el contexto provisto, debes responder exactamente: 'Lo lamento, pero esa información no se encuentra contemplada en los documentos oficiales de la propuesta ni en las referencias bibliográficas de la ponencia.'\n"
-                "4. No respondas preguntas de cultura general, código, matemáticas o cualquier tema ajeno a esta investigación.\n\n"
-                f"CONTEXTO EXCLUSIVO DE BÚSQUEDA:\n{CONTEXTO_INYECTADO}"
-            )
-        },
-        {
-            "role": "assistant", 
-            "content": (
-                "¡Hola! He sido configurado para buscar información exclusivamente dentro de los documentos aportados, "
-                "las normativas internacionales citadas y las referencias bibliográficas de la ponencia. ¿Qué consulta puntual "
-                "deseas realizar sobre el Órgano Colegiado, MIDEPLAN, el IMAS o la teoría de Max-Neef?"
-            )
-        }
-    ]
+# 4. Definición de la instrucción maestra del sistema
+INSTRUCCION_SISTEMA = (
+    "REGLAS ESTRICTAS DE OPERACIÓN:\n"
+    "1. Actúa como un asistente académico riguroso para la ponencia de Trabajo Social 2026.\n"
+    "2. Tu ÚNICA fuente de verdad es el contexto provisto al final de estas instrucciones. Está terminantemente prohibido usar conocimientos externos o inventar datos.\n"
+    "3. Si la respuesta a la pregunta del usuario NO se encuentra explícitamente detallada, sugerida o referenciada en el contexto provisto, debes responder exactamente: 'Lo lamento, pero esa información no se encuentra contemplada en los documentos oficiales de la propuesta ni en las referencias bibliográficas de la ponencia.'\n"
+    "4. No respondas bajo ninguna circunstancia preguntas de cultura general, código, recetas, matemáticas o cualquier tema ajeno a esta investigación.\n\n"
+    f"CONTEXTO EXCLUSIVO DE BÚSQUEDA:\n{CONTEXTO_INYECTADO}"
+)
 
-# 5. Renderizar el historial de conversación en pantalla
-for msg in st.session_state.messages:
-    if msg["role"] != "system":
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
+# 5. Inicialización y renderizado seguro del historial del Chat en Streamlit
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
+
+# Mensaje de bienvenida inicial fijo
+with st.chat_message("assistant"):
+    st.write(
+        "¡Hola! He sido configurado para buscar información exclusivamente dentro de los documentos aportados, "
+        "las normativas internacionales citadas y las referencias bibliográficas de la ponencia. ¿Qué consulta puntual "
+        "deseas realizar sobre el Órgano Colegiado, MIDEPLAN, el IMAS o la teoría de Max-Neef?"
+    )
+
+# Renderizar los mensajes que se vayan acumulando en la sesión activa
+for role, text in st.session_state["chat_history"]:
+    with st.chat_message(role):
+        st.write(text)
 
 # 6. Captura de la interacción y consulta del usuario (Inferencia Blindada)
 if user_query := st.chat_input("Escribe tu consulta académica o profesional aquí..."):
-    # Guardar y mostrar el mensaje enviado por el usuario
-    st.session_state.messages.append({"role": "user", "content": user_query})
+    # Guardar y mostrar el mensaje del usuario
+    st.session_state["chat_history"].append(("user", user_query))
     with st.chat_message("user"):
         st.write(user_query)
+        
+    # Construcción dinámica del payload de mensajes garantizando la inyección del System Prompt fresco
+    payload_mensajes = [{"role": "system", "content": INSTRUCCION_SISTEMA}]
+    for role, text in st.session_state["chat_history"]:
+        payload_mensajes.append({"role": role, "content": text})
         
     # Consulta al motor de inferencia compatible con OpenAI
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
         try:
-            # Llamada estándar usando el catálogo actualizado de Groq con temperatura cero
             chat_completion = client.chat.completions.create(
                 model="openai/gpt-oss-120b",
-                messages=st.session_state.messages,
-                temperature=0.0  # Anula la creatividad y obliga a ceñirse al documento
+                messages=payload_mensajes,
+                temperature=0.0  # Anula por completo la creatividad y fuerza el apego al documento
             )
             answer = chat_completion.choices.message.content
             response_placeholder.write(answer)
             
-            # Guardar la respuesta generada en el historial de sesión
-            st.session_state.messages.append({"role": "assistant", "content": answer})
+            # Guardar la respuesta generada en el historial
+            st.session_state["chat_history"].append(("assistant", answer))
         except Exception as e:
             st.error(f"Ocurrió un error en la comunicación con el servidor: {e}")
