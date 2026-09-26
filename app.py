@@ -28,7 +28,7 @@ client = OpenAI(
 
 # 4. Buscador inteligente de texto restringido para Planes Gratuitos (Anti Error 413)
 @st.cache_data
-def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):  # Reducido de 8 a 2 bloques máximo
+def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
     """
     Busca palabras clave en TODOS los archivos .txt de la carpeta.
     Limita estrictamente el contexto enviado para no saturar el límite TPM de 8000 tokens.
@@ -47,15 +47,16 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):  # Reducido d
             
             for parrafo in parrafos:
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if condiciones := coincidencias > 0:
+                if modificaciones := modificaciones_bloque := coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
-    # Ordenar de mayor a menor coincidencia
-    bloques_encontrados.sort(key=lambda x: x, reverse=True)
+    # Ordenar de mayor a menor coincidencia basados en el primer elemento de la tupla (coincidencias)
+    bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
     
     if bloques_encontrados:
-        # Enviamos únicamente los fragmentos más relevantes para proteger la cuota de tokens
-        return "\n\n---\n\n".join([b for b in bloques_encontrados[:max_bloques]])
+        # CORRECCIÓN EXTRA CRÍTICA: Extraemos b[1] (el texto) para evitar el TypeError
+        textos_filtrados = [b[1] for b in bloques_encontrados[:max_bloques]]
+        return "\n\n---\n\n".join(textos_filtrados)
     
     return "No se encontraron coincidencias específicas. Responde de forma muy concisa usando tu conocimiento general."
 
@@ -123,7 +124,8 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
                     "Para asegurar que la norma consultada no haya sufrido reformas recientes, "
                     f"puedes verificar directamente los términos de tu consulta en el [Buscador del Sistema Nacional de Leyes Vigentes (SINALEVI)]({url_sinalevi} \"Búsqueda SINALEVI\")."
                 )
-             st.session_state.messages.append({"role": "user", "content": user_query})
+            
+            st.session_state.messages.append({"role": "user", "content": user_query})
             st.session_state.messages.append({"role": "assistant", "content": answer})
             
         except Exception as e:
