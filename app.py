@@ -23,15 +23,15 @@ if not api_key:
 # 3. Inicialización del cliente apuntando a los servidores de Groq
 client = OpenAI(
     api_key=api_key,
-    base_url="https://api.groq.com/openai/v1"  # Endpoint de compatibilidad correcto de Groq
+    base_url="https://groq.com"
 )
 
-# 4. Buscador inteligente de texto en múltiples archivos (Evita desborde de tokens)
+# 4. Buscador inteligente de texto restringido para Planes Gratuitos (Anti Error 413)
 @st.cache_data
-def escanear_todos_los_contextos(consulta_usuario, max_bloques=8):
+def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):  # Reducido de 8 a 2 bloques máximo
     """
     Busca palabras clave en TODOS los archivos .txt de la carpeta.
-    Prioriza las coincidencias exactas para armar el mejor contexto dinámico.
+    Limita estrictamente el contexto enviado para no saturar el límite TPM de 8000 tokens.
     """
     archivos = glob.glob("*.txt")
     if not archivos:
@@ -47,15 +47,17 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=8):
             
             for parrafo in parrafos:
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if coincidencias > 0:
+                if condiciones := coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
-    bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
+    # Ordenar de mayor a menor coincidencia
+    bloques_encontrados.sort(key=lambda x: x, reverse=True)
     
     if bloques_encontrados:
-        return "\n\n---\n\n".join([b[1] for b in bloques_encontrados[:max_bloques]])
+        # Enviamos únicamente los fragmentos más relevantes para proteger la cuota de tokens
+        return "\n\n---\n\n".join([b for b in bloques_encontrados[:max_bloques]])
     
-    return "No se encontraron coincidencias específicas en los documentos. Responde usando tu conocimiento general en Trabajo Social."
+    return "No se encontraron coincidencias específicas. Responde de forma muy concisa usando tu conocimiento general."
 
 # 5. Inicialización del historial de chat en la sesión de Streamlit
 if "messages" not in st.session_state:
@@ -88,23 +90,22 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     prompt_sistema = {
         "role": "system",
         "content": (
-            "Eres un asistente académico de nivel doctoral experto en Trabajo Social y Gestión Pública en Costa Rica.\n\n"
-            "INSTRUCCIONES DE BÚSQUEDA Y RESPUESTA:\n"
-            "1. Revisa primero este contexto extraído de nuestros documentos oficiales:\n"
+            "Eres un asistente académico experto en Trabajo Social en Costa Rica.\n"
+            "INSTRUCCIONES DIRECTAS:\n"
+            "Responde de forma muy breve, directa y resumida utilizando este contexto:\n"
             f"{contexto_dinamico}\n\n"
-            "2. Si la respuesta está en los documentos, priorízala y cítala formalmente.\n"
-            "3. Si la información local no es suficiente, complementa con tu conocimiento general institucional.\n"
-            "4. Sé riguroso, ético y crítico. Mantén un enfoque alineado con los Derechos Humanos y la Democracia Participativa."
+            "Evita introducciones largas para no consumir tokens innecesarios."
         )
     }
     
-    historial_reciente = st.session_state.messages[-4:]
+    # Recortar el historial al mínimo absoluto (solo la última interacción) para ahorrar tokens de entrada
+    historial_reciente = st.session_state.messages[-2:]
     mensajes_para_api = [prompt_sistema] + historial_reciente + [{"role": "user", "content": user_query}]
     
     with st.chat_message("assistant"):
         try:
             stream = client.chat.completions.create(
-                model="openai/gpt-oss-20b",  # ID de producción estable y activo de Groq
+                model="openai/gpt-oss-20b",
                 messages=mensajes_para_api,
                 temperature=0.2,               
                 stream=True                    
