@@ -12,6 +12,19 @@ st.set_page_config(
 st.title("🧑🏻‍💻 Asistente Virtual: Ponencia Trabajo Social 2026")
 st.subheader("Consultas basadas en la Teoría de Max-Neef, Constitución Política y Derechos Humanos")
 
+# CAMBIO SUGERIDO: Selector de modelos en la barra lateral para flexibilidad académica
+st.sidebar.header("⚙️ Configuración del Sistema")
+modelo_seleccionado = st.sidebar.selectbox(
+    "Selecciona el modelo de IA:",
+    options=[
+        "llama-3.1-70b-versatile",  # Modelo principal de alta capacidad de razonamiento
+        "llama-3.1-8b-instant",     # Modelo secundario ultra veloz
+        "mixtral-8x7b-32768"        # Gran rendimiento multilingüe en español
+    ],
+    index=0,
+    help="Si experimentas lentitud o errores, prueba cambiar a un modelo instantáneo."
+)
+
 # 2. Conexión segura con la API Key (Almacenada en los Secrets de Streamlit)
 if "GROQ_API_KEY" in st.secrets:
     api_key = st.secrets["GROQ_API_KEY"]
@@ -86,9 +99,9 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
         try:
-            # Llamada estándar usando el catálogo actualizado de Groq
+            # Llamada usando el modelo dinámico elegido en la barra lateral
             chat_completion = client.chat.completions.create(
-                model="llama-3.1-70b-versatile",  # REPARADO: Modelo oficial activo en Groq
+                model=modelo_seleccionado,  
                 messages=st.session_state.messages,
                 temperature=0.0  # Temperatura baja para garantizar fidelidad estricta al texto
             )
@@ -98,7 +111,9 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             # Guardar la respuesta generada en el historial de sesión
             st.session_state.messages.append({"role": "assistant", "content": answer})
         except Exception as e:
-            # MENSAJE DE ERROR PERSONALIZADO EN ESPAÑOL
+            # CAMBIO SUGERIDO: Mostrar log técnico de depuración exclusivo para el administrador
+            st.sidebar.error(f"🔍 Error técnico de la API: {e}")
+            
             response_placeholder.empty() # Limpia cualquier texto residual colgado
             st.error(
                 "⚠️ **Servicio temporalmente interrumpido**\n\n"
@@ -106,7 +121,8 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
                 "una alta demanda o una breve desconexión con los servidores de consulta pública.\n\n"
                 "**Por favor, intenta lo siguiente:**\n"
                 "1. Espera unos segundos y vuelve a enviar tu pregunta.\n"
-                "2. Recarga esta página en tu navegador web.\n\n"
+                "2. Selecciona un modelo diferente en la barra lateral izquierda.\n"
+                "3. Recarga esta página en tu navegador web.\n\n"
                 "Si el problema persiste, agradecemos reportarlo al administrador de la plataforma "
                 "para restaurar el acceso en tiempo real a los documentos de la propuesta."
             )
