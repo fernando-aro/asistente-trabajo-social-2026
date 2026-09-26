@@ -24,7 +24,7 @@ else:
 # 3. Inicialización del cliente OpenAI apuntando al endpoint compatible de Groq
 client = OpenAI(
     api_key=api_key,
-    base_url="https://groq.com"
+    base_url="https://api.groq.com/openai/v1"  # Base URL oficial compatible
 )
 
 # 4. Función automática para leer el archivo de contexto externo (.txt)
@@ -87,9 +87,9 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
         try:
-            # MODELO ACTUALIZADO Y ACTIVO: Llama 3.3 70B Versatile
+            # CORRECCIÓN DE ENDPOINT: Usamos el modelo de chat masivo compatible con /chat/completions
             chat_completion = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="llama-3.1-70b-versatile",  # Modelo estable, gratuito y compatible con OpenAI SDK
                 messages=payload_mensajes,
                 temperature=0.0  # Fuerza el apego matemático al documento de texto plano
             )
@@ -99,5 +99,5 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             # Guardar la respuesta generada en el historial
             st.session_state["chat_history"].append(("assistant", answer))
         except Exception as e:
-            # Conservamos tu bloque original de monitoreo
+            # Se conserva tu bloque original para auditoría de errores del servidor
             st.error(f"Ocurrió un error en la comunicación con el servidor: {e}")
