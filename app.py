@@ -9,8 +9,8 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("🧑🏻‍💻 Asistente Virtual: Ponencia Trabajo Social 2026")
-st.subheader("Consultas basadas en la Teoría de Max-Neef, Constitución Política y Derechos Humanos")
+st.title("🤖 Asistente Virtual: Ponencia Trabajo Social 2026")
+st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
 
 # 2. Conexión segura con la API Key (Almacenada en los Secrets de Streamlit)
 if "GROQ_API_KEY" in st.secrets:
@@ -50,11 +50,7 @@ if "messages" not in st.session_state:
         {
             "role": "system", 
             "content": (
-"REGLAS ESTRICTAS DE OPERACIÓN:\n"
-                "1. Actúa como un asistente académico riguroso para la ponencia de Trabajo Social 2026.\n"
-                "2. Está terminantemente prohibido inventar datos.\n"
-                "3. Ante consultas sobre la Constitución Política de Costa Rica buscar estrictamente cada artículo en esta dirección https://sinalevi.go.cr/ResultadosNormativa/Informacion?param1=871&param2=147492&param3=1, para búsqueda de otras leyes y reglamentos buscar siempre en el Sistema Nacional de Leyes Vigentes sinalevi.go.cr.\n"
-                "Eres un asistente académico experto en Trabajo Social, Derecho Constitucional y Administrativo, Gestión Pública, Participación Ciudadana y Derechos Humanos. "
+                "Eres un asistente académico experto en Trabajo Social, Gestión Pública y Derechos Humanos. "
                 "Responde las dudas de estudiantes y profesionales basándote estrictamente en el siguiente contexto legal, "
                 f"teórico y bibliográfico inyectado desde tus documentos oficiales:\n\n{CONTEXTO_INYECTADO}"
             )
@@ -62,9 +58,9 @@ if "messages" not in st.session_state:
         {
             "role": "assistant", 
             "content": (
-                "¡Hola! El bot asistente (creado por ARO | Asesoría en Recursos Organizacionales) está listo para responder tus consultas. "
-                "Puedes preguntar sobre el modelo del Órgano Colegiado para la Institucionalización de la Participación Ciudadana, el Artículo 9 de la Constitución de Costa Rica, "
-                "los recortes presupuestarios en inversión social y la teoría de Necesidades Humanas Fundamentales de Max-Neef. ¿Qué deseas consultar?"
+                "¡Hola! El bot asistente (con arquitectura OpenAI-Groq) está listo para responder tus consultas en tiempo real. "
+                "Puedes preguntar sobre el modelo del Órgano Colegiado, el Artículo 9 de la Constitución de Costa Rica, la Ley 8364, "
+                "los recortes presupuestarios en inversión social o la crítica a los seudo-satisfactores del IMAS y MIDEPLAN. ¿Qué deseas consultar?"
             )
         }
     ]
@@ -90,7 +86,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             chat_completion = client.chat.completions.create(
                 model="openai/gpt-oss-120b",  # Modelo oficial de alta capacidad con Prompt Caching
                 messages=st.session_state.messages,
-                temperature=0.0  # Temperatura baja para garantizar fidelidad estricta al texto
+                temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
             )
             answer = chat_completion.choices[0].message.content
             response_placeholder.write(answer)
@@ -98,15 +94,59 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             # Guardar la respuesta generada en el historial de sesión
             st.session_state.messages.append({"role": "assistant", "content": answer})
         except Exception as e:
-            # MENSAJE DE ERROR PERSONALIZADO EN ESPAÑOL
-            response_placeholder.empty() # Limpia cualquier texto residual colgado
-            st.error(
-                "⚠️ **Servicio temporalmente interrumpido**\n\n"
-                "En este momento, el motor de inferencia de la ponencia está experimentando "
-                "una alta demanda o una breve desconexión con los servidores de consulta pública.\n\n"
-                "**Por favor, intenta lo siguiente:**\n"
-                "1. Espera unos segundos y vuelve a enviar tu pregunta.\n"
-                "2. Recarga esta página en tu navegador web.\n\n"
-                "Si el problema persiste, agradecemos reportarlo al administrador de la plataforma "
-                "para restaurar el acceso en tiempo real a los documentos de la propuesta."
-)
+            st.error(f"Ocurrió un error en la comunicación con el servidor: {e}")
+
+
+
+
+
+
+
+# [ ... Código anterior idéntico: configuración, API key y lectura del archivo .txt ... ]
+
+# 4. Inicialización del historial de chat BLINDADO en la sesión de Streamlit
+if "messages" not in st.session_state:
+    st.session_state["messages"] = [
+        {
+            "role": "system", 
+            "content": (
+                "REGLAS ESTRICTAS DE OPERACIÓN:\n"
+                "1. Actúa como un asistente académico riguroso para la ponencia de Trabajo Social 2026.\n"
+                "2. Tu ÚNICA fuente de verdad es el contexto provisto a continuación. Está terminantemente prohibido usar conocimientos externos o inventar datos.\n"
+                "3. Si la respuesta a la pregunta del usuario NO se encuentra explícitamente detallada, sugerida o referenciada en el contexto provisto, debes responder exactamente: 'Lo lamento, pero esa información no se encuentra contemplada en los documentos oficiales de la propuesta ni en las referencias bibliográficas de la ponencia.'\n"
+                "4. No respondas preguntas de cultura general, código, matemáticas o cualquier tema ajeno a esta investigación.\n\n"
+                f"CONTEXTO EXCLUSIVO DE BÚSQUEDA:\n{CONTEXTO_INYECTADO}"
+            )
+        },
+        {
+            "role": "assistant", 
+            "content": (
+                "¡Hola! He sido configurado para buscar información exclusivamente dentro de los documentos aportados, "
+                "las normativas internacionales citadas y las referencias bibliográficas de la ponencia. ¿Qué consulta puntual "
+                "deseas realizar sobre el Órgano Colegiado, MIDEPLAN, el IMAS o la teoría de Max-Neef?"
+            )
+        }
+    ]
+
+# [ ... Código intermedio idéntico: renderizado de mensajes en pantalla ... ]
+
+# 7. Captura de la interacción y consulta del usuario (Inferencia Blindada)
+if user_query := st.chat_input("Escribe tu consulta académica o profesional aquí..."):
+    st.session_state.messages.append({"role": "user", "content": user_query})
+    with st.chat_message("user"):
+        st.write(user_query)
+        
+    with St.chat_message("assistant"):
+        response_placeholder = st.empty()
+        try:
+            chat_completion = client.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=st.session_state.messages,
+                temperature=0.0  # <--- CRUCIAL: Temperatura 0.0 anula la creatividad del modelo
+            )
+            answer = chat_completion.choices.message.content
+            response_placeholder.write(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
+        except Exception as e:
+            st.error(f"Ocurrió un error en la comunicación con el servidor: {e}")
+
