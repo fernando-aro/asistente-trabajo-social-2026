@@ -123,8 +123,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
                     "Para asegurar que la norma consultada no haya sufrido reformas recientes, "
                     f"puedes verificar directamente los términos de tu consulta en el [Buscador del Sistema Nacional de Leyes Vigentes (SINALEVI)]({url_sinalevi} \"Búsqueda SINALEVI\")."
                 )
-            
-            st.session_state.messages.append({"role": "user", "content": user_query})
+             st.session_state.messages.append({"role": "user", "content": user_query})
             st.session_state.messages.append({"role": "assistant", "content": answer})
             
         except Exception as e:
