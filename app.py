@@ -86,7 +86,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             chat_completion = client.chat.completions.create(
                 model="openai/gpt-oss-120b",  # Modelo oficial de alta capacidad con Prompt Caching
                 messages=st.session_state.messages,
-                temperature=0.1  # Temperatura baja para garantizar fidelidad estricta al texto
+                temperature=0.0  # Temperatura baja para garantizar fidelidad estricta al texto
             )
             answer = chat_completion.choices[0].message.content
             response_placeholder.write(answer)
