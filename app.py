@@ -21,13 +21,13 @@ else:
     st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit Community Cloud.")
     st.stop()
 
-# Inicialización del cliente OpenAI apuntando a los servidores rápidos de Groq
+# 3. Inicialización del cliente OpenAI apuntando a los servidores rápidos de Groq
 client = OpenAI(
     api_key=api_key,
-    base_url="https://groq.com"
+    base_url="https://api.groq.com/openai/v1"  # Endpoint de compatibilidad OpenAI
 )
 
-# 3. Función automática para leer el archivo de contexto externo (.txt)
+# 4. Función automática para leer el archivo de contexto externo (.txt)
 @st.cache_data
 def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
     """
@@ -41,41 +41,37 @@ def cargar_contexto_documentos(nombre_archivo="documentos_contexto.txt"):
     with open(nombre_archivo, "r", encoding="utf-8") as f:
         return f.read()
 
-# --- CRUCIAL: ESTA LÍNEA DEBE EJECUTARSE ANTES DEL HISTORIAL DEL CHAT ---
-# Aquí cargamos y definimos la variable en memoria para evitar el NameError
+# Inyección del texto de los documentos aportados
 CONTEXTO_INYECTADO = cargar_contexto_documentos()
 
-# 4. Inicialización del historial de chat BLINDADO en la sesión de Streamlit
+# 5. Inicialización del historial de chat en la sesión de Streamlit
 if "messages" not in st.session_state:
     st.session_state["messages"] = [
         {
             "role": "system", 
             "content": (
-                "REGLAS ESTRICTAS DE OPERACIÓN:\n"
-                "1. Actúa como un asistente académico riguroso para la ponencia de Trabajo Social 2026.\n"
-                "2. Tu ÚNICA fuente de verdad es el contexto provisto a continuación. Está terminantemente prohibido usar conocimientos externos o inventar datos.\n"
-                "3. Si la respuesta a la pregunta del usuario NO se encuentra explícitamente detallada, sugerida o referenciada en el contexto provisto, debes responder exactamente: 'Lo lamento, pero esa información no se encuentra contemplada en los documentos oficiales de la propuesta ni en las referencias bibliográficas de la ponencia.'\n"
-                "4. No respondas preguntas de cultura general, código, matemáticas o cualquier tema ajeno a esta investigación.\n\n"
-                f"CONTEXTO EXCLUSIVO DE BÚSQUEDA:\n{CONTEXTO_INYECTADO}"
+                "Eres un asistente académico experto en Trabajo Social, Gestión Pública y Derechos Humanos. "
+                "Responde las dudas de estudiantes y profesionales basándote estrictamente en el siguiente contexto legal, "
+                f"teórico y bibliográfico inyectado desde tus documentos oficiales:\n\n{CONTEXTO_INYECTADO}"
             )
         },
         {
             "role": "assistant", 
             "content": (
-                "¡Hola! He sido configurado para buscar información exclusivamente dentro de los documentos aportados, "
-                "las normativas internacionales citadas y las referencias bibliográficas de la ponencia. ¿Qué consulta puntual "
-                "deseas realizar sobre el Órgano Colegiado, MIDEPLAN, el IMAS o la teoría de Max-Neef?"
+                "¡Hola! El bot asistente (con arquitectura OpenAI-Groq) está listo para responder tus consultas en tiempo real. "
+                "Puedes preguntar sobre el modelo del Órgano Colegiado, el Artículo 9 de la Constitución de Costa Rica, la Ley 8364, "
+                "los recortes presupuestarios en inversión social o la crítica a los seudo-satisfactores del IMAS y MIDEPLAN. ¿Qué deseas consultar?"
             )
         }
     ]
 
-# 5. Renderizar el historial de conversación en pantalla
+# 6. Renderizar el historial de conversación en pantalla
 for msg in st.session_state.messages:
     if msg["role"] != "system":
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
-# 6. Captura de la interacción y consulta del usuario (Inferencia Blindada)
+# 7. Captura de la interacción y consulta del usuario
 if user_query := st.chat_input("Escribe tu consulta académica o profesional aquí..."):
     # Guardar y mostrar el mensaje enviado por el usuario
     st.session_state.messages.append({"role": "user", "content": user_query})
@@ -86,13 +82,13 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
         try:
-            # Llamada estándar usando el catálogo actualizado de Groq con temperatura cero
+            # Llamada estándar usando el catálogo actualizado de Groq
             chat_completion = client.chat.completions.create(
-                model="openai/gpt-oss-120b",
+                model="openai/gpt-oss-120b",  # Modelo oficial de alta capacidad con Prompt Caching
                 messages=st.session_state.messages,
-                temperature=0.0  # Anula la creatividad y obliga a ceñirse al documento
+                temperature=0.2  # Temperatura baja para garantizar fidelidad estricta al texto
             )
-            answer = chat_completion.choices.message.content
+            answer = chat_completion.choices[0].message.content
             response_placeholder.write(answer)
             
             # Guardar la respuesta generada en el historial de sesión
