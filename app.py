@@ -98,7 +98,7 @@ if user_query := st.chat_input("Escribe tu consulta aquí..."):
 
             # 1. Generar respuesta del LLM en tiempo real
             stream = client.chat.completions.create(
-                        try:
+
             # CORRECCIÓN: Cambiar a un identificador 100% activo en el endpoint de Groq
             stream = client.chat.completions.create(
                 model="llama-3.1-8b-instant",  # Modelo estable, veloz y con soporte total de streaming
