@@ -114,7 +114,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     with st.chat_message("assistant"):
         try:
             stream = client.chat.completions.create(
-                model="openai/gpt-oss-20b",  # REEMPLAZO OFICIAL ACTIVO EN GROQ
+                model="mixtral-8x22b-instruct",  # REEMPLAZO OFICIAL ACTIVO EN GROQ
                 messages=mensajes_para_api,
                 temperature=0.2,               
                 stream=True                    
