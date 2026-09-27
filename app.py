@@ -23,12 +23,12 @@ if not api_key:
 # 3. Inicialización del cliente NATIVO de Groq
 client = Groq(api_key=api_key)
 
-# 4. Buscador inteligente de texto restringido para Planes Gratuitos (Anti Error 413)
+# 4. Buscador inteligente de texto corregido (Garantiza el formato STR para el join)
 @st.cache_data
 def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
     """
     Busca palabras clave en TODOS los archivos .txt de la carpeta.
-    Limita estrictamente el contexto enviado para no saturar el límite TPM de tokens.
+    Filtra y extrae de forma estricta solo las cadenas de texto para evitar el TypeError.
     """
     archivos = glob.glob("*.txt")
     if not archivos:
@@ -44,14 +44,15 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
             
             for parrafo in parrafos:
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if modificaciones := coincidencias > 0:
+                if coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
-    # Ordenar de mayor a menor coincidencia
-    bloques_encontrados.sort(key=lambda x: x, reverse=True)
+    # Ordenar de mayor a menor coincidencia basados en el número de aciertos
+    bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
     
     if bloques_encontrados:
-        textos_filtrados = [b for b in bloques_encontrados[:max_bloques]]
+        # CORRECCIÓN DE RAÍZ: Desempaquetamos la tupla y extraemos explícitamente el texto (b)
+        textos_filtrados = [b for a, b in bloques_encontrados[:max_bloques]]
         return "\n\n---\n\n".join(textos_filtrados)
     
     return "No se encontraron coincidencias específicas. Responde de forma muy concisa usando tu conocimiento general."
@@ -100,7 +101,6 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     
     with st.chat_message("assistant"):
         try:
-            # CORRECCIÓN DE FLUJO: Usamos gemma2-9b-it que devuelve texto limpio e inmediato
             stream = client.chat.completions.create(
                 model="gemma2-9b-it",  
                 messages=mensajes_para_api,
@@ -108,13 +108,12 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
                 stream=True                    
             )
             
-            # Función generadora personalizada para extraer estrictamente el contenido de texto legible
+            # Generador limpio para extraer tokens de texto
             def generador_limpio():
                 for chunk in stream:
                     if chunk.choices and chunk.choices[0].delta.content:
                         yield chunk.choices[0].delta.content
 
-            # Enviar el generador limpio a Streamlit para visualización en tiempo real
             answer = st.write_stream(generador_limpio())
             
             if es_consulta_legal:
