@@ -111,24 +111,32 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
                 stream=True                    
             )
             
+            # CORRECCIÓN DEFINITIVA INTERNA: Extracción híbrida Segura (Objeto o Diccionario)
             def generar_respuesta():
                 for chunk in stream:
-                    if chunk.choices and len(chunk.choices) > 0:
-                        delta = chunk.choices.delta
-                        if hasattr(delta, 'content') and delta.content:
-                            yield delta.content
+                    if hasattr(chunk, 'choices') and chunk.choices:
+                        # Extraer el primer elemento de la lista choices
+                        choice = chunk.choices[0]
+                        
+                        # Manejo seguro si es un objeto con atributos o diccionario
+                        if hasattr(choice, 'delta'):
+                            delta = choice.delta
+                            if hasattr(delta, 'content') and delta.content:
+                                yield delta.content
+                        elif isinstance(choice, dict) and 'delta' in choice:
+                            delta = choice['delta']
+                            if isinstance(delta, dict) and 'content' in delta and delta['content']:
+                                yield delta['content']
 
             answer = st.write_stream(generar_respuesta())
             
             # Inyección limpia del enlace jurídico corregido
             if es_consulta_legal:
                 query_codificado = urllib.parse.quote_plus(user_query)
-                # URL externa limpia mediante redirección segura certificada
                 url_sinalevi = f"https://google.com+{query_codificado}"
                 
                 st.markdown("---")
                 st.caption("⚖️ **Validación Jurídica Oficial (Costa Rica):**")
-                # CORRECCIÓN DEFINITIVA: st.link_button no hereda restricciones de sandbox de iframe
                 st.link_button(
                     label="🔍 Verificar actualizaciones en SINALEVI",
                     url=url_sinalevi,
