@@ -11,7 +11,7 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("🤖 Asistente Virtual: Ponencia Trabajo Social 2026")
+st.title("🧑🏻‍💻 Asistente Virtual: Ponencia Trabajo Social 2026")
 st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
 
 # 2. Conexión segura con la API Key
@@ -66,8 +66,7 @@ if "messages" not in st.session_state:
             "role": "assistant", 
             "content": (
                 "¡Hola! El asistente de tu ponencia está listo. "
-                "Puedes consultar con total seguridad sobre la Ley 8364, el Artículo 9 de la Constitución, "
-                "la Teoría de Max-Neef o el Modelo de Órgano Colegiado. ¿Qué deseas analizar hoy?"
+                "¿Qué aspectos te interesa profundizar sobre la ponencia y su aplicación en tu estudio o trabajo?"
             )
         }
     ]
