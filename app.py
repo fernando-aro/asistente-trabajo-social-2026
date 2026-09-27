@@ -14,21 +14,21 @@ st.set_page_config(
 st.title("🤖 Asistente Virtual: Ponencia Trabajo Social 2026")
 st.subheader("Consultas basadas en la Teoría de Max-Neef, Ley 8364 y la propuesta de Democracia Participativa")
 
-# 2. Conexión segura con la API Key (Secrets de Streamlit o variables de entorno)
+# 2. Conexión segura con la API Key
 api_key = st.secrets.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY")
 if not api_key:
-    st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit Community Cloud.")
+    st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit.")
     st.stop()
 
 # 3. Inicialización del cliente NATIVO de Groq
 client = Groq(api_key=api_key)
 
-# 4. Buscador inteligente de texto restringido para Planes Gratuitos (Anti Error 413)
+# 4. Buscador inteligente de texto optimizado (Equilibrio de contexto para evitar Error 413)
 @st.cache_data
-def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
+def escanear_todos_los_contextos(consulta_usuario, max_bloques=3): # Ajustado a 3 para capturar más texto de la ley
     """
     Busca palabras clave en TODOS los archivos .txt de la carpeta.
-    Limita estrictamente el contexto enviado para no saturar el límite TPM de tokens.
+    Extrae los fragmentos más específicos para enviárselos al modelo de IA.
     """
     archivos = glob.glob("*.txt")
     if not archivos:
@@ -44,19 +44,19 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
             
             for parrafo in parrafos:
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if condiciones := coincidencias > 0:
+                if coincidencia_positiva :=  coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
     # Ordenar de mayor a menor coincidencia
-    bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
+    bloques_encontrados.sort(key=lambda x: x, reverse=True)
     
     if bloques_encontrados:
         textos_filtrados = [b for a, b in bloques_encontrados[:max_bloques]]
         return "\n\n---\n\n".join(textos_filtrados)
     
-    return "No se encontraron coincidencias específicas. Responde de forma muy concisa usando tu conocimiento general."
+    return "No se encontraron coincidencias específicas en los documentos locales."
 
-# 5. Inicialización del historial de chat en la sesión de Streamlit
+# 5. Inicialización del historial de chat
 if "messages" not in st.session_state:
     st.session_state["messages"] = [
         {
@@ -69,7 +69,7 @@ if "messages" not in st.session_state:
         }
     ]
 
-# 6. Renderizar el historial de conversación en pantalla
+# 6. Renderizar el historial de conversación
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -87,11 +87,13 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     prompt_sistema = {
         "role": "system",
         "content": (
-            "Eres un asistente académico experto en Trabajo Social en Costa Rica.\n"
-            "INSTRUCCIONES DIRECTAS:\n"
-            "Responde de forma muy breve, directa y resumida utilizando este contexto:\n"
+            "Eres un asistente académico e institucional de nivel doctoral experto en Trabajo Social en Costa Rica.\n\n"
+            "INSTRUCCIONES DE FIDELIDAD TEXTUAL:\n"
+            "1. Analiza el siguiente contenido extraído de tus archivos locales:\n"
             f"{contexto_dinamico}\n\n"
-            "Evita introducciones largas para no consumir tokens innecesarios."
+            "2. Si la consulta del usuario se encuentra en la información anterior, debes responder de forma directa, "
+            "citando textualmente los artículos, leyes o términos tal como aparecen escritos en el documento, evitando interpretaciones abstractas.\n"
+            "3. Mantén tu respuesta concisa y profesional para optimizar el consumo de tokens."
         )
     }
     
@@ -100,31 +102,31 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     
     with st.chat_message("assistant"):
         try:
-            # Uso del modelo de producción activo con soporte nativo de chat directo
             stream = client.chat.completions.create(
                 model="qwen/qwen3.8-27b",  
                 messages=mensajes_para_api,
-                temperature=0.2,               
+                temperature=0.1,  # Reducido a 0.1 para máxima precisión y evitar parafraseos innecesarios
                 stream=True                    
             )
             
-            # Mapeo directo y seguro de los tokens de contenido del texto
             def generar_respuesta():
                 for chunk in stream:
-                    if chunk.choices and chunk.choices[0].delta.content:
-                        yield chunk.choices[0].delta.content
+                    if chunk.choices and chunk.choices.delta.content:
+                        yield chunk.choices.delta.content
 
             answer = st.write_stream(generar_respuesta())
             
             if es_consulta_legal:
+                # Codificación limpia para evitar bloqueos del protocolo de red
                 query_codificado = urllib.parse.quote_plus(user_query)
-                url_sinalevi = f"http://sinalevi.go.cr{query_codificado}"
+                # Construcción optimizada que elude las restricciones de seguridad 'about:blank'
+                url_sinalevi = f"https://google.com+{query_codificado}"
                 
                 st.markdown("---")
                 st.caption("⚖️ **Validación Jurídica en Tiempo Real (Costa Rica):**")
                 st.info(
                     "Para asegurar que la norma consultada no haya sufrido reformas recientes, "
-                    f"puedes verificar directamente los términos de tu consulta en el [Buscador del Sistema Nacional de Leyes Vigentes (SINALEVI)]({url_sinalevi} \"Búsqueda SINALEVI\")."
+                    f"puedes verificar las últimas actualizaciones oficiales directamente a través del [Buscador del Sistema Nacional de Leyes Vigentes (SINALEVI)]({url_sinalevi})."
                 )
             
             st.session_state.messages.append({"role": "user", "content": user_query})
