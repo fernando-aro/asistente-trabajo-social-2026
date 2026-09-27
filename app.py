@@ -65,7 +65,7 @@ if "messages" not in st.session_state:
         {
             "role": "assistant", 
             "content": (
-                "¿Qué aspectos te interesa profundizar sobre la ponencia y su aplicación en tu estudio o trabajo? (Por ser un chat gratuito tiene una capacidad limitada, si te genera un error guarda la información en PDF en la opción Print y reinicia la conversación en Clear Caché)"
+                "¿Qué aspectos te interesa profundizar sobre la ponencia y su aplicación en tu estudio o trabajo?   (Por ser un chat gratuito tiene una capacidad limitada, si te genera un error guarda la información en PDF en la opción Print y reinicia la página del navegador)"
             )
         }
     ]
@@ -88,7 +88,7 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     prompt_sistema = {
         "role": "system",
         "content": (
-            "Eres un asistente académico experto en Trabajo Social, Administración Pública y Legislación en Costa Rica.\n\n"
+            "Eres un asistente académico experto en Trabajo Social, Administración Pública, Derechos Humanos y Legislación en Costa Rica.\n\n"
             "INSTRUCCIONES DE VERACIDAD ABSOLUTA:\n"
             "1. Utiliza obligatoriamente esta base de conocimiento verídica:\n"
             f"{CONOCIMIENTO_BLINDADO}\n\n"
