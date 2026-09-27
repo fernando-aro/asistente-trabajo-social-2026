@@ -23,16 +23,20 @@ if not api_key:
 # 3. Inicialización del cliente NATIVO de Groq
 client = Groq(api_key=api_key)
 
-# 4. Buscador inteligente de texto restringido para Planes Gratuitos (Anti Error 413/429)
+# Base de conocimiento estricta inyectada (Blindaje contra alucinaciones)
+CONOCIMIENTO_BLINDADO = """
+CONOCIMIENTO JURÍDICO OFICIAL DE COSTA RICA:
+- Ley N° 8364 (Año 2003): Es la Ley de Reforma Constitucional del Artículo 9 de la Constitución Política de Costa Rica. Su único y principal objetivo histórico fue incorporar de forma explícita el concepto de "participativo" a la definición del Gobierno de la República.
+- Artículo 9 de la Constitución Política (Texto Vigente): "El Gobierno de la República es popular, representativo, participativo, alternativo y responsable. Lo ejercen tres Poderes distintos e independientes entre sí: el Legislativo, el Ejecutivo y el Judicial. Ninguno de los Poderes puede delegar el ejercicio de funciones que le son propias..."
+- Relación con Trabajo Social 2026: Esta reforma constitucional dota de un blindaje y fundamento jurídico de rango constitucional a todas las propuestas de Democracia Participativa, auditoría ciudadana, presupuestos participativos y al Modelo del Órgano Colegiado propuesto para la ponencia.
+"""
+
+# 4. Buscador inteligente de archivos locales
 @st.cache_data
 def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
-    """
-    Busca palabras clave en TODOS los archivos .txt de la carpeta.
-    Extrae los fragmentos más específicos para enviárselos al modelo de IA.
-    """
     archivos = glob.glob("*.txt")
     if not archivos:
-        return "No se encontraron archivos de contexto (.txt) locales."
+        return "No se encontraron archivos de contexto (.txt) locales adicionales."
 
     palabras_clave = [p.lower() for p in consulta_usuario.split() if len(p) > 3]
     bloques_encontrados = []
@@ -44,17 +48,16 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
             
             for parrafo in parrafos:
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if  coincidencias > 0:
+                if coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
-    # Ordenar de mayor a menor coincidencia
-    bloques_encontrados.sort(key=lambda x: x, reverse=True)
+    bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
     
     if bloques_encontrados:
         textos_filtrados = [b for a, b in bloques_encontrados[:max_bloques]]
         return "\n\n---\n\n".join(textos_filtrados)
     
-    return f"Los documentos locales actuales no contienen datos explícitos para la consulta: '{consulta_usuario}'."
+    return "No se encontraron coincidencias específicas en los documentos locales."
 
 # 5. Inicialización del historial de chat
 if "messages" not in st.session_state:
@@ -62,9 +65,9 @@ if "messages" not in st.session_state:
         {
             "role": "assistant", 
             "content": (
-                "¡Hola! He cargado el entorno de análisis de tus documentos base. "
-                "Puedes preguntar sobre el modelo del Órgano Colegiado, el Artículo 9 de la Constitución de Costa Rica, la Ley 8364, "
-                "los recortes presupuestarios en inversión social o la crítica a los seudo-satisfactores del IMAS y MIDEPLAN. ¿Qué deseas consultar?"
+                "¡Hola! El asistente de tu ponencia está listo. "
+                "Puedes consultar con total seguridad sobre la Ley 8364, el Artículo 9 de la Constitución, "
+                "la Teoría de Max-Neef o el Modelo de Órgano Colegiado. ¿Qué deseas analizar hoy?"
             )
         }
     ]
@@ -88,13 +91,13 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
         "role": "system",
         "content": (
             "Eres un asistente académico experto en Trabajo Social y Legislación en Costa Rica.\n\n"
-            "INSTRUCCIONES DE FIDELIDAD TEXTUAL:\n"
-            "1. Analiza este contenido extraído de tus archivos locales:\n"
+            "INSTRUCCIONES DE VERACIDAD ABSOLUTA:\n"
+            "1. Utiliza obligatoriamente esta base de conocimiento verídica:\n"
+            f"{CONOCIMIENTO_BLINDADO}\n\n"
+            "2. Complementa únicamente con la información extraída de los archivos locales si es oportuno:\n"
             f"{contexto_dinamico}\n\n"
-            "2. Responde basándote prioritariamente en los datos anteriores. Si el contexto indica explícitamente "
-            "que la información no está en los archivos locales, indícalo amablemente y procede a responder de forma concisa "
-            "haciendo uso de tus conocimientos generales actualizados sobre el marco legal de Costa Rica.\n"
-            "3. Mantén la respuesta compacta y precisa."
+            "3. Si te preguntan por la Ley 8364, aclara firmemente que es la Reforma Constitucional que añadió el término 'participativo' al Artículo 9 de la Constitución Política. No inventes ninguna relación con la Defensoría de los Habitantes.\n"
+            "4. Responde de forma resumida, directa y técnica."
         )
     }
     
@@ -106,39 +109,29 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             stream = client.chat.completions.create(
                 model="qwen/qwen3.8-27b",  
                 messages=mensajes_para_api,
-                temperature=0.2,  
-                max_tokens=600,     
+                temperature=0.0,  # Temperatura en 0.0 para evitar cualquier asomo de invención o alucinación
+                max_tokens=500,     
                 stream=True                    
             )
             
-            # CORRECCIÓN DEFINITIVA INTERNA: Extracción híbrida Segura (Objeto o Diccionario)
             def generar_respuesta():
                 for chunk in stream:
-                    if hasattr(chunk, 'choices') and chunk.choices:
-                        # Extraer el primer elemento de la lista choices
-                        choice = chunk.choices[0]
-                        
-                        # Manejo seguro si es un objeto con atributos o diccionario
-                        if hasattr(choice, 'delta'):
-                            delta = choice.delta
-                            if hasattr(delta, 'content') and delta.content:
-                                yield delta.content
-                        elif isinstance(choice, dict) and 'delta' in choice:
-                            delta = choice['delta']
-                            if isinstance(delta, dict) and 'content' in delta and delta['content']:
-                                yield delta['content']
+                    if chunk.choices and len(chunk.choices) > 0:
+                        delta = chunk.choices[0].delta
+                        if hasattr(delta, 'content') and delta.content:
+                            yield delta.content
 
             answer = st.write_stream(generar_respuesta())
             
-            # Inyección limpia del enlace jurídico corregido
             if es_consulta_legal:
                 query_codificado = urllib.parse.quote_plus(user_query)
-                url_sinalevi = f"https://google.com+{query_codificado}"
+                # URL CORREGIDA: Enlace HTTPS seguro directo al Sistema de la Asamblea Legislativa que no se bloquea
+                url_sinalevi = f"https://asamblea.go.cr{query_codificado}"
                 
                 st.markdown("---")
                 st.caption("⚖️ **Validación Jurídica Oficial (Costa Rica):**")
                 st.link_button(
-                    label="🔍 Verificar actualizaciones en SINALEVI",
+                    label="🔍 Verificar reforma del Artículo 9 en el Portal Legislativo",
                     url=url_sinalevi,
                     use_container_width=True
                 )
