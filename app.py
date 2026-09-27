@@ -99,11 +99,12 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     historial_reciente = st.session_state.messages[-2:]
     mensajes_para_api = [prompt_sistema] + historial_reciente + [{"role": "user", "content": user_query}]
     
+        # Consulta al motor de inferencia de producción estable en Groq
     with st.chat_message("assistant"):
         try:
-            # Llamada nativa utilizando el motor oficial de Groq
+            # Llamada nativa utilizando el motor oficial activo de Groq
             stream = client.chat.completions.create(
-                model="llama3-8b-8192",  # Modelo estable, gratuito y de producción masiva en Groq
+                model="openai/gpt-oss-20b",  # ID de producción oficial y activo en Groq
                 messages=mensajes_para_api,
                 temperature=0.2,               
                 stream=True                    
