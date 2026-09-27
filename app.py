@@ -1,5 +1,5 @@
 import streamlit as st
-from groq import Groq  # Migración a la librería oficial nativa de Groq
+from groq import Groq
 import os
 import glob
 import urllib.parse
@@ -20,7 +20,7 @@ if not api_key:
     st.error("⚠️ No se encontró la API Key. Configúrala como GROQ_API_KEY en los Secrets de Streamlit Community Cloud.")
     st.stop()
 
-# 3. Inicialización del cliente NATIVO de Groq (Elimina el error 405)
+# 3. Inicialización del cliente NATIVO de Groq
 client = Groq(api_key=api_key)
 
 # 4. Buscador inteligente de texto restringido para Planes Gratuitos (Anti Error 413)
@@ -48,11 +48,10 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
     # Ordenar de mayor a menor coincidencia
-    bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
+    bloques_encontrados.sort(key=lambda x: x, reverse=True)
     
     if bloques_encontrados:
-        # Extraemos solo el texto (segundo elemento de la tupla)
-        textos_filtrados = [b[1] for b in bloques_encontrados[:max_bloques]]
+        textos_filtrados = [b for b in bloques_encontrados[:max_bloques]]
         return "\n\n---\n\n".join(textos_filtrados)
     
     return "No se encontraron coincidencias específicas. Responde de forma muy concisa usando tu conocimiento general."
@@ -99,18 +98,24 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     historial_reciente = st.session_state.messages[-2:]
     mensajes_para_api = [prompt_sistema] + historial_reciente + [{"role": "user", "content": user_query}]
     
-        # Consulta al motor de inferencia de producción estable en Groq
     with st.chat_message("assistant"):
         try:
-            # Llamada nativa utilizando el motor oficial activo de Groq
+            # CORRECCIÓN DE FLUJO: Usamos gemma2-9b-it que devuelve texto limpio e inmediato
             stream = client.chat.completions.create(
-                model="openai/gpt-oss-20b",  # ID de producción oficial y activo en Groq
+                model="gemma2-9b-it",  
                 messages=mensajes_para_api,
                 temperature=0.2,               
                 stream=True                    
             )
             
-            answer = st.write_stream(stream)
+            # Función generadora personalizada para extraer estrictamente el contenido de texto legible
+            def generador_limpio():
+                for chunk in stream:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        yield chunk.choices[0].delta.content
+
+            # Enviar el generador limpio a Streamlit para visualización en tiempo real
+            answer = st.write_stream(generador_limpio())
             
             if es_consulta_legal:
                 query_codificado = urllib.parse.quote_plus(user_query)
