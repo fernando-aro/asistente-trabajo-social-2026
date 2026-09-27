@@ -23,9 +23,9 @@ if not api_key:
 # 3. Inicialización del cliente NATIVO de Groq
 client = Groq(api_key=api_key)
 
-# 4. Buscador inteligente de texto optimizado (Equilibrio de contexto para evitar Error 413)
+# 4. Buscador inteligente de texto restringido para Planes Gratuitos (Anti Error 413/429)
 @st.cache_data
-def escanear_todos_los_contextos(consulta_usuario, max_bloques=3):
+def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):  # Reducido a 2 bloques fijos para controlar tokens
     """
     Busca palabras clave en TODOS los archivos .txt de la carpeta.
     Extrae los fragmentos más específicos para enviárselos al modelo de IA.
@@ -44,7 +44,7 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=3):
             
             for parrafo in parrafos:
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if modificaciones :=  coincidencias > 0:
+                if  coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
     # Ordenar de mayor a menor coincidencia
@@ -87,29 +87,30 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     prompt_sistema = {
         "role": "system",
         "content": (
-            "Eres un asistente académico e institucional de nivel doctoral experto en Trabajo Social en Costa Rica.\n\n"
+            "Eres un asistente académico experto en Trabajo Social en Costa Rica.\n\n"
             "INSTRUCCIONES DE FIDELIDAD TEXTUAL:\n"
-            "1. Analiza el siguiente contenido extraído de tus archivos locales:\n"
+            "1. Analiza este contenido extraído de tus archivos locales:\n"
             f"{contexto_dinamico}\n\n"
-            "2. Si la consulta del usuario se encuentra en la información anterior, debes responder de forma directa, "
-            "citando textualmente los artículos, leyes o términos tal como aparecen escritos en el documento, evitando interpretaciones abstractas.\n"
-            "3. Mantén tu respuesta concisa y profesional para optimizar el consumo de tokens."
+            "2. Responde estrictamente usando la información provista, transcribiendo las leyes tal cual aparecen escritas.\n"
+            "3. Sé extremadamente sintético y estructurado. No agregues saludos ni comentarios largos."
         )
     }
     
+    # Conservamos solo la última interacción para economizar tokens
     historial_reciente = st.session_state.messages[-2:]
     mensajes_para_api = [prompt_sistema] + historial_reciente + [{"role": "user", "content": user_query}]
     
     with st.chat_message("assistant"):
         try:
+            # CONTROL DE TOKENS: Fijamos max_tokens para eludir las restricciones del Tier Gratuito
             stream = client.chat.completions.create(
                 model="qwen/qwen3.8-27b",  
                 messages=mensajes_para_api,
                 temperature=0.1,  
+                max_tokens=500,     # CORRECCIÓN CLAVE: Restringe la salida máxima para no violar el OTPM de 1000 tokens
                 stream=True                    
             )
             
-            # CORRECCIÓN CLAVE: Acceso seguro al índice [0] del objeto choices de Groq
             def generar_respuesta():
                 for chunk in stream:
                     if chunk.choices and len(chunk.choices) > 0:
