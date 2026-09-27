@@ -65,8 +65,7 @@ if "messages" not in st.session_state:
         {
             "role": "assistant", 
             "content": (
-                "¡Hola! El asistente de tu ponencia está listo. "
-                "¿Qué aspectos te interesa profundizar sobre la ponencia y su aplicación en tu estudio o trabajo? (Nota: por ser un chat gratuito tiene una capacidad limitada, si te genera un error guarda la información en PDF en la opción Print y reinicia la conversación)"
+                "¿Qué aspectos te interesa profundizar sobre la ponencia y su aplicación en tu estudio o trabajo? (Por ser un chat gratuito tiene una capacidad limitada, si te genera un error guarda la información en PDF en la opción Print y reinicia la conversación en Clear Caché)"
             )
         }
     ]
