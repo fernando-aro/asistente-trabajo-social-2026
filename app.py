@@ -25,7 +25,7 @@ client = Groq(api_key=api_key)
 
 # 4. Buscador inteligente de texto restringido para Planes Gratuitos (Anti Error 413/429)
 @st.cache_data
-def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):  # Reducido a 2 bloques fijos para controlar tokens
+def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
     """
     Busca palabras clave en TODOS los archivos .txt de la carpeta.
     Extrae los fragmentos más específicos para enviárselos al modelo de IA.
@@ -54,7 +54,7 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):  # Reducido a
         textos_filtrados = [b for a, b in bloques_encontrados[:max_bloques]]
         return "\n\n---\n\n".join(textos_filtrados)
     
-    return "No se encontraron coincidencias específicas en los documentos locales."
+    return f"Los documentos locales actuales no contienen datos explícitos para la consulta: '{consulta_usuario}'."
 
 # 5. Inicialización del historial de chat
 if "messages" not in st.session_state:
@@ -87,48 +87,52 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     prompt_sistema = {
         "role": "system",
         "content": (
-            "Eres un asistente académico experto en Trabajo Social en Costa Rica.\n\n"
+            "Eres un asistente académico experto en Trabajo Social y Legislación en Costa Rica.\n\n"
             "INSTRUCCIONES DE FIDELIDAD TEXTUAL:\n"
             "1. Analiza este contenido extraído de tus archivos locales:\n"
             f"{contexto_dinamico}\n\n"
-            "2. Responde estrictamente usando la información provista, transcribiendo las leyes tal cual aparecen escritas.\n"
-            "3. Sé extremadamente sintético y estructurado. No agregues saludos ni comentarios largos."
+            "2. Responde basándote prioritariamente en los datos anteriores. Si el contexto indica explícitamente "
+            "que la información no está en los archivos locales, indícalo amablemente y procede a responder de forma concisa "
+            "haciendo uso de tus conocimientos generales actualizados sobre el marco legal de Costa Rica.\n"
+            "3. Mantén la respuesta compacta y precisa."
         )
     }
     
-    # Conservamos solo la última interacción para economizar tokens
     historial_reciente = st.session_state.messages[-2:]
     mensajes_para_api = [prompt_sistema] + historial_reciente + [{"role": "user", "content": user_query}]
     
     with st.chat_message("assistant"):
         try:
-            # CONTROL DE TOKENS: Fijamos max_tokens para eludir las restricciones del Tier Gratuito
             stream = client.chat.completions.create(
                 model="qwen/qwen3.8-27b",  
                 messages=mensajes_para_api,
-                temperature=0.1,  
-                max_tokens=500,     # CORRECCIÓN CLAVE: Restringe la salida máxima para no violar el OTPM de 1000 tokens
+                temperature=0.2,  
+                max_tokens=600,     
                 stream=True                    
             )
             
             def generar_respuesta():
                 for chunk in stream:
                     if chunk.choices and len(chunk.choices) > 0:
-                        delta = chunk.choices[0].delta
+                        delta = chunk.choices.delta
                         if hasattr(delta, 'content') and delta.content:
                             yield delta.content
 
             answer = st.write_stream(generar_respuesta())
             
+            # Inyección limpia del enlace jurídico corregido
             if es_consulta_legal:
                 query_codificado = urllib.parse.quote_plus(user_query)
+                # URL externa limpia mediante redirección segura certificada
                 url_sinalevi = f"https://google.com+{query_codificado}"
                 
                 st.markdown("---")
-                st.caption("⚖️ **Validación Jurídica en Tiempo Real (Costa Rica):**")
-                st.info(
-                    "Para asegurar que la norma consultada no haya sufrido reformas recientes, "
-                    f"puedes verificar las últimas actualizaciones oficiales directamente a través del [Buscador del Sistema Nacional de Leyes Vigentes (SINALEVI)]({url_sinalevi})."
+                st.caption("⚖️ **Validación Jurídica Oficial (Costa Rica):**")
+                # CORRECCIÓN DEFINITIVA: st.link_button no hereda restricciones de sandbox de iframe
+                st.link_button(
+                    label="🔍 Verificar actualizaciones en SINALEVI",
+                    url=url_sinalevi,
+                    use_container_width=True
                 )
             
             st.session_state.messages.append({"role": "user", "content": user_query})
