@@ -25,7 +25,7 @@ client = Groq(api_key=api_key)
 
 # 4. Buscador inteligente de texto optimizado (Equilibrio de contexto para evitar Error 413)
 @st.cache_data
-def escanear_todos_los_contextos(consulta_usuario, max_bloques=3): # Ajustado a 3 para capturar más texto de la ley
+def escanear_todos_los_contextos(consulta_usuario, max_bloques=3):
     """
     Busca palabras clave en TODOS los archivos .txt de la carpeta.
     Extrae los fragmentos más específicos para enviárselos al modelo de IA.
@@ -44,7 +44,7 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=3): # Ajustado a 
             
             for parrafo in parrafos:
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if coincidencia_positiva :=  coincidencias > 0:
+                if modificaciones :=  coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
     # Ordenar de mayor a menor coincidencia
@@ -105,21 +105,22 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             stream = client.chat.completions.create(
                 model="qwen/qwen3.8-27b",  
                 messages=mensajes_para_api,
-                temperature=0.1,  # Reducido a 0.1 para máxima precisión y evitar parafraseos innecesarios
+                temperature=0.1,  
                 stream=True                    
             )
             
+            # CORRECCIÓN CLAVE: Acceso seguro al índice [0] del objeto choices de Groq
             def generar_respuesta():
                 for chunk in stream:
-                    if chunk.choices and chunk.choices.delta.content:
-                        yield chunk.choices.delta.content
+                    if chunk.choices and len(chunk.choices) > 0:
+                        delta = chunk.choices[0].delta
+                        if hasattr(delta, 'content') and delta.content:
+                            yield delta.content
 
             answer = st.write_stream(generar_respuesta())
             
             if es_consulta_legal:
-                # Codificación limpia para evitar bloqueos del protocolo de red
                 query_codificado = urllib.parse.quote_plus(user_query)
-                # Construcción optimizada que elude las restricciones de seguridad 'about:blank'
                 url_sinalevi = f"https://google.com+{query_codificado}"
                 
                 st.markdown("---")
