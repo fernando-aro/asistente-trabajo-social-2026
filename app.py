@@ -23,12 +23,12 @@ if not api_key:
 # 3. Inicialización del cliente NATIVO de Groq
 client = Groq(api_key=api_key)
 
-# 4. Buscador inteligente de texto corregido (Garantiza el formato STR para el join)
+# 4. Buscador inteligente de texto restringido para Planes Gratuitos (Anti Error 413)
 @st.cache_data
 def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
     """
     Busca palabras clave en TODOS los archivos .txt de la carpeta.
-    Filtra y extrae de forma estricta solo las cadenas de texto para evitar el TypeError.
+    Limita estrictamente el contexto enviado para no saturar el límite TPM de tokens.
     """
     archivos = glob.glob("*.txt")
     if not archivos:
@@ -44,14 +44,13 @@ def escanear_todos_los_contextos(consulta_usuario, max_bloques=2):
             
             for parrafo in parrafos:
                 coincidencias = sum(1 for p in palabras_clave if p in parrafo.lower())
-                if coincidencias > 0:
+                if condiciones := coincidencias > 0:
                     bloques_encontrados.append((coincidencias, f"[{ruta_archivo}]: {parrafo}"))
 
-    # Ordenar de mayor a menor coincidencia basados en el número de aciertos
+    # Ordenar de mayor a menor coincidencia
     bloques_encontrados.sort(key=lambda x: x[0], reverse=True)
     
     if bloques_encontrados:
-        # CORRECCIÓN DE RAÍZ: Desempaquetamos la tupla y extraemos explícitamente el texto (b)
         textos_filtrados = [b for a, b in bloques_encontrados[:max_bloques]]
         return "\n\n---\n\n".join(textos_filtrados)
     
@@ -101,20 +100,21 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
     
     with st.chat_message("assistant"):
         try:
+            # Uso del modelo de producción activo con soporte nativo de chat directo
             stream = client.chat.completions.create(
-                model="gemma2-9b-it",  
+                model="qwen/qwen3.8-27b",  
                 messages=mensajes_para_api,
                 temperature=0.2,               
                 stream=True                    
             )
             
-            # Generador limpio para extraer tokens de texto
-            def generador_limpio():
+            # Mapeo directo y seguro de los tokens de contenido del texto
+            def generar_respuesta():
                 for chunk in stream:
                     if chunk.choices and chunk.choices[0].delta.content:
                         yield chunk.choices[0].delta.content
 
-            answer = st.write_stream(generador_limpio())
+            answer = st.write_stream(generar_respuesta())
             
             if es_consulta_legal:
                 query_codificado = urllib.parse.quote_plus(user_query)
