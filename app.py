@@ -124,15 +124,16 @@ if user_query := st.chat_input("Escribe tu consulta académica o profesional aqu
             answer = st.write_stream(generar_respuesta())
             
             if es_consulta_legal:
-                query_codificado = urllib.parse.quote_plus(user_query)
-                # URL CORREGIDA: Enlace HTTPS seguro directo al Sistema de la Asamblea Legislativa que no se bloquea
-                url_sinalevi = f"https://asamblea.go.cr{query_codificado}"
-                
                 st.markdown("---")
                 st.caption("⚖️ **Validación Jurídica Oficial (Costa Rica):**")
+                st.info(
+                    "Para asegurar que la norma consultada no haya sufrido reformas recientes, "
+                    "puedes verificar las últimas actualizaciones oficiales directamente en el portal del SCIJ."
+                )
+                # URL raíz segura de SINALEVI que elude todas las restricciones del navegador
                 st.link_button(
-                    label="🔍 Verificar reforma del Artículo 9 en el Portal Legislativo",
-                    url=url_sinalevi,
+                    label="🔗 Abrir Buscador del Sistema Nacional de Leyes Vigentes (SINALEVI)",
+                    url="https://sinalevi.go.cr/",
                     use_container_width=True
                 )
             
